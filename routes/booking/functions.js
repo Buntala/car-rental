@@ -1,29 +1,58 @@
+const Joi = require("joi");
+
 async function getBookingData(id=null,psql){
     let query;
     let result;
-    query = 'SELECT *,start_time::varchar,end_time::varchar, total_cost::integer FROM booking ';
-    if (id !== null)query += `WHERE booking_id = ${id};`
 
+    //select all with date convert to string
+    query = 'SELECT *,start_time::varchar,end_time::varchar FROM booking ';
+    //Get data with ID
+    if (id !== null){
+        schema = Joi.number();
+        let err_msg;
+        //check if id is numeric
+        const {error} = schema.validate(id)
+        if (error){
+            err_msg=error.message
+            return [err_msg , []];
+        }
+
+        //add id condition
+        if (id !== null)query += `WHERE booking_id = ${id};`
+        result = await psql.query(query);
+        
+        //check if query is successful
+        
+        if (result.rowCount===0)err_msg="ID is invalid!";
+        return [err_msg , result.rows];
+    }
     result = await psql.query(query);
-    //ERROR HANDLING
     return result.rows;
 }
 async function insertBookingData(psql, customer_id,cars_id,start_time,end_time,total_cost,finished){
     let query;
     let result;
-
     query = 
     `INSERT INTO booking(customer_id,cars_id,start_time,end_time,total_cost,finished) 
     VALUES ('${customer_id}',${cars_id},'${start_time}','${end_time}',${total_cost},${finished})`;
     result = await psql.query(query);
-
-    //ERROR HANDLING
     return;
 }
 
 async function updateBookingData(psql,customer_id,cars_id,start_time,end_time,total_cost,finished,id){
     let query;
-    let result; 
+    let result;
+    let err_msg;
+    //Validate id
+    if (id !== null){
+        schema = Joi.number();
+        //check if id is numeric
+        const {error} = schema.validate(id)
+        if (error){
+            err_msg=error.message
+            return err_msg;
+        }
+    } 
     query =  
     `UPDATE booking 
     SET customer_id = ${customer_id},
@@ -36,19 +65,30 @@ async function updateBookingData(psql,customer_id,cars_id,start_time,end_time,to
 
     result = await psql.query(query);
     //ERROR HANDLING
-    console.log
-    return ;//result.rows;
+    if (!result.rowCount)error='Data with the ID not found';
+    return error;//result.rows;
 }
 async function deleteBookingData(psql,id){
     let query;
     let result;
+    let err_msg;
+    //Validate id
+    if (id !== null){
+        schema = Joi.number();
+        //check if id is numeric
+        const {error} = schema.validate(id)
+        if (error){
+            err_msg=error.message
+            return err_msg;
+        }
+    }
     query = 
     `DELETE FROM booking
     WHERE booking_id = ${id}`;
     result = await psql.query(query);
-    //ERROR HANDLING
-
-    return ;//result;
+    //checks if data with id was deleted
+    if (!result.rowCount)err_msg='No data with the ID';
+    return err_msg;
 }
 exports.getBookingData = getBookingData;
 exports.insertBookingData = insertBookingData;

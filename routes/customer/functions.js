@@ -1,8 +1,27 @@
+const Joi = require("joi");
+
 async function getCustomerData(id=null,psql){
     let query;
     let result;
     query = 'SELECT * FROM customer ';
-    if (id !== null)query += `WHERE customer_id = ${id};`
+    //Get data with id
+    if (id !== null){
+        schema = Joi.number();
+        let err_msg;
+        //check if id is numeric
+        const {error} = schema.validate(id)
+        if (error){
+            err_msg=error.message
+            return [err_msg , []];
+        }
+
+        query += `WHERE customer_id = ${id};`
+        result = await psql.query(query);
+
+        //check if query is successful
+        if (result.rowCount===0)err_msg="ID is invalid!";
+        return [err_msg , result.rows];
+    }
 
     result = await psql.query(query);
     //ERROR HANDLING
@@ -17,13 +36,23 @@ async function insertCustomerData(psql,name,nik,phone_number){
     `INSERT INTO customer(name,nik,phone_number)
     VALUES ('${name}',${nik},${phone_number})`;
     result = await psql.query(query);
-    //ERROR HANDLING
-
     return;
 }
 async function updateCustomerData(psql,name,nik,phone_number,id){
     let query;
-    let result; 
+    let result;
+    let err_msg;
+    //Validate id
+    if (id !== null){
+        schema = Joi.number();
+        //check if id is numeric
+        const {error} = schema.validate(id)
+        if (error){
+            err_msg=error.message
+            return err_msg;
+        }
+    }
+ 
     query =  
     `UPDATE customer 
     SET name = '${name}',
@@ -32,20 +61,23 @@ async function updateCustomerData(psql,name,nik,phone_number,id){
     WHERE customer_id = ${id}`;
 
     result = await psql.query(query);
-    //ERROR HANDLING
-
-    return ;//result.rows;
+    console.log(result.rowCount)
+    //checks if data with id was updated
+    if (!result.rowCount)error='No data with the ID';
+    return error;
 }
 async function deleteCustomerData(psql,id){
     let query;
     let result;
+    let error;
+
     query = 
     `DELETE FROM customer
     WHERE customer_id = ${id}`;
     result = await psql.query(query);
-    //ERROR HANDLING
-
-    return ;//result;
+    //checks if data with id was deleted
+    if (!result.rowCount){error='No data with the ID'}
+    return error ;//result;
 }
 
 exports.getCustomerData = getCustomerData;
