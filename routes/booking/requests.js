@@ -8,7 +8,8 @@ const getData = require('./functions').getBookingData;
 const insertData = require('./functions').insertBookingData;
 const updateData = require('./functions').updateBookingData;
 const deleteData = require('./functions').deleteBookingData;
-const validate = require('../../utilities/data-validation');
+const bodyValidate = require('../../utilities/data-validation').bodyValidate;
+const paramValidate = require('../../utilities/data-validation').integerParamValidate;
 
 const router = express.Router();
 
@@ -17,10 +18,12 @@ const router = express.Router();
 let joi_schema = Joi.object({
     customer_id:Joi.number().required(),
     cars_id: Joi.number().required(),
-    start_time:Joi.string().required(),
-    end_time:Joi.string().required(),
+    start_time:Joi.date().required(),
+    end_time:Joi.date().required(),
     total_cost:Joi.number().required(),
-    finished:Joi.boolean().required()
+    finished:Joi.boolean().required(),
+    booking_type_id:Joi.number().required(),
+    driver_id:Joi.number(),
 });
 
 //GET BOOKING DATA
@@ -36,69 +39,77 @@ router.get('/get',async(req,res)=>{
 //GET BOOKING DATA ON ID
 router.get('/get/:id',async(req,res)=>{
     let id = req.params.id;
-    let result;
     const client =  await pool.connect();
     //params data validation
-    [error, result] = await getData(id,client);
-    if (error){
-            res.status(400).json(error);
+    try{
+        paramValidate(id);
+        let result = await getData(id,client);
+        res.status(200).json(result);
+        client.release();
         return;
     }
-    res.status(200).json(result);
-    client.release();
-    return;
+    catch(err){
+        res.status(400).json(err);
+        return;
+    }
 })
 
 //POST BOOKING DATA
 router.post('/post',async(req,res)=>{
     let data = req.body;
-    let result;
     const client =  await pool.connect();
     //body data validation
-    const status = validate(joi_schema,data)
-    if (status){
-        res.status(400).json(status);
+    //const status = bodyValidate(joi_schema,data)
+    try{
+        bodyValidate(joi_schema,data);
+        _ = await insertData(client,data.customer_id,data.cars_id,data.start_time,data.end_time,data.total_cost,data.finished);
+        res.status(200).json(`Data Added Successfully`);
+        client.release();
         return;
     }
-    result = await insertData(client,data.customer_id,data.cars_id,data.start_time,data.end_time,data.total_cost,data.finished);
-    res.status(200).json(`Data Added Successfully`);
-    client.release();
-    return;
+    catch(error){
+        res.status(400).json(error);
+        client.release();
+        return;
+    }
+
 })
 
 //UPDATE BOOKING DATA ON ID
 router.put('/update/:id',async(req,res)=>{
     let id = req.params.id;
     let data = req.body;
-    let error;
     const client =  await pool.connect();
-    //body data validation
-    const status = validate(joi_schema,data);
-    if (status){
-        res.status(400).json(status);
+    //data validation
+    try{
+        bodyValidate(joi_schema,data);
+        paramValidate(id);
+        await updateData(client,data.customer_id,data.cars_id,data.start_time,data.end_time,data.total_cost,data.finished,id); 
+        res.status(200).json('Data Updated')
+        client.release();
         return;
     }
-    //params data validation
-    error = await updateData(client,data.customer_id,data.cars_id,data.start_time,data.end_time,data.total_cost,data.finished,id); 
-    if (error){
+    catch(error){
         res.status(400).json(error);
+        client.release();
         return;
     }
-    res.status(200).json('Data Updated')
-    client.release();
-    return;
 })
+
 router.delete('/delete/:id',async(req,res)=>{
     let id = req.params.id;
-    let result;
     const client =  await pool.connect();
-    error = await deleteData(client,id);
-    if (error){
-        res.status(400).json('Data ID not found')
+    //Validate data
+    try{
+        paramValidate(id);
+        _ = await deleteData(client,id);
+        res.status(200).json('Data Deleted')
+        client.release();
+    }
+    catch (error){
+        res.status(400).json(error)
+        client.release()
         return;
     }
-    res.status(200).json('Data Deleted')
-    client.release();
-    return;
 })
 module.exports = router

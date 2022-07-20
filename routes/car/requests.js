@@ -8,8 +8,8 @@ const getData = require('./functions').getCarData;
 const insertData = require('./functions').insertCarData;
 const updateData = require('./functions').updateCarData;
 const deleteData = require('./functions').deleteCarData;
-const validate = require('../../utilities/data-validation');
-
+const bodyValidate = require('../../utilities/data-validation').bodyValidate;
+const paramValidate = require('../../utilities/data-validation').integerParamValidate;
 
 const router = express.Router();
 
@@ -34,58 +34,57 @@ router.get('/get',async(req,res)=>{
 router.get('/get/:id',async(req,res)=>{
     //get parameter id
     let id = req.params.id;
-    let result;
     const client =  await pool.connect();
-    //params data validation
-    [error, result] = await getData(id,client);
-    if (error){
-         res.status(400).json(error);
+    try{
+        paramValidate(id);
+        let result = await getData(id,client);
+        res.status(200).json(result);
+        client.release();
         return;
     }
-    res.status(200).json(result);
-    client.release();
-    return;
+    catch(err){
+        res.status(400).json(err);
+        return;
+    }
 })
 
 //POST CAR DATA
 router.post('/post',async(req,res)=>{
     let data = req.body;
-    let result;
     const client =  await pool.connect();
-    //body data validation
-    const status = validate(joi_schema,data)
-    if (status){
-        res.status(400).json(status);
+    try{
+        bodyValidate(joi_schema,data);
+        _ = await insertData(client,data.name,data.rent_price_daily,data.stock);
+        res.status(200).json(`Data Added Successfully`);
+        client.release();
         return;
     }
-    //query data
-    result = await insertData(client,data.name,data.rent_price_daily,data.stock);
-    res.status(200).json(`Data Added Successfully`);
-    client.release();
-    return;
+    catch(error){
+        res.status(400).json(error);
+        client.release();
+        return;
+    }
 })
 
 //UPDATE CAR DATA ON ID
 router.put('/update/:id',async(req,res)=>{
     let id = req.params.id;
     let data = req.body;
-    let error;
     const client =  await pool.connect();
     //body data validation
-    const status = validate(joi_schema,data);
-    if (status){
-        res.status(400).json(status);
+    try{
+        bodyValidate(joi_schema,data);
+        paramValidate(id);
+        await updateData(client,data.name,data.rent_price_daily,data.stock,id);
+        res.status(200).json('Data Updated')
+        client.release();
         return;
     }
-    //params data validation
-    error = await updateData(client,data.name,data.rent_price_daily,data.stock,id);
-    if (error){
+    catch(error){
         res.status(400).json(error);
+        client.release();
         return;
     }
-    res.status(200).json('Data Updated');
-    client.release();
-    return;
 })
 
 //DELETE CAR DATA ON ID
@@ -93,15 +92,16 @@ router.delete('/delete/:id',async(req,res)=>{
     let id = req.params.id;
     let error;
     const client =  await pool.connect();
-    //body data validation
-    error = await deleteData(client,id);
-    if (error){
-        res.status(400).json('Data ID not found')
+    try{
+        paramValidate(id);
+        _ = await deleteData(client,id);
+        res.status(200).json('Data Deleted')
+        client.release();
+    }
+    catch (error){
+        res.status(400).json(error)
+        client.release()
         return;
     }
-    res.status(200).json('Data Deleted');
-    client.release();
-    return;
 })
-
 module.exports = router

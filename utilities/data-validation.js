@@ -1,12 +1,22 @@
 const Joi = require("joi");
 
 //validate data string
-function validate(schema, data) {
+function bodyValidate(schema, data) {
     const {error} = schema.validate(data)
-    if (error)return error.message;
+    if (error){
+        throw error.message;
+    }
     return;
 };
-function integerParamValidate(data){
-
+function integerParamValidate(id){
+    schema = Joi.number();
+    //check if id is numeric
+    const {error} = schema.validate(id)
+    if (error){
+        err_msg=error.message
+        throw err_msg;
+    }
+    return;
 }
-module.exports = validate
+exports.bodyValidate=bodyValidate
+exports.integerParamValidate = integerParamValidate
