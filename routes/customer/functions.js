@@ -1,4 +1,4 @@
-async function getCustomerData(id=null,psql){
+async function getCustomerData(psql,id=null){
     //select all with date convert to string
     let query = 'SELECT * FROM customer ';
     //Get data with id

@@ -24,7 +24,7 @@ let joi_schema = Joi.object({
 router.get('/get',async(req,res)=>{
     let result;
     const client =  await pool.connect();
-    result = await getData(null,client);
+    result = await getData(client);
     res.status(200).json(result);
     client.release();
     return;
@@ -37,7 +37,7 @@ router.get('/get/:id',async(req,res)=>{
     //params data validation
     try{
         paramValidate(id);
-        let result = await getData(id,client);
+        let result = await getData(client,id);
         res.status(200).json(result);
         client.release();
         return;

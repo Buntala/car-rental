@@ -1,5 +1,5 @@
 //Get all car data or get data by car id
-async function getCarData(id=null,psql){
+async function getCarData(psql,id=null){
     let query = 'SELECT * FROM cars ';
     //Get data with ID
     if (id !== null){
@@ -22,7 +22,7 @@ async function insertCarData(psql,name,price,stock){
     let query = 
     `INSERT INTO cars(name,rent_price_daily,stock) 
     VALUES ('${name}',${price},${stock})`;
-    _ = await psql.query(query);
+    let result = await psql.query(query);
     return;
 }
 
