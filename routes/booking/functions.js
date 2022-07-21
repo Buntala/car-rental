@@ -2,6 +2,8 @@
 const insertIncentiveData = require('../driver_incentive/functions').insertIncentiveData;
 const getMembershipData = require('../membership/functions').getMembershipData;
 const getDriverData = require('../driver/functions').getDriverData;
+const getCarData = require('../car/functions').getCarData;
+
 
 //get all booking data or get booking by id
 async function getBookingData(psql,id=null){
@@ -57,7 +59,6 @@ async function insertBookingData(psql, customer_id,cars_id,start_time,end_time,f
     try{
         //add incentive data to incentive table
         _ = await insertIncentiveData(psql,inserted_booking_id, driver_incentive);
-        console.log("hello")
         return;
     }
     catch(error){
@@ -121,11 +122,8 @@ async function countDiscount(duration,daily_price,discount){
 }
 //get car rent price
 async function getDailyPrice(psql, cars_id){
-    let query = 
-    `SELECT rent_price_daily FROM cars 
-    WHERE cars_id = ${cars_id}`
-    let result = await psql.query(query);
-    let price = result.rows[0].rent_price_daily;
+    let result = await getCarData(psql,cars_id);
+    let price = result[0].rent_price_daily;
     return price;
 }
 //count booking duration in days
@@ -143,6 +141,12 @@ async function countDriverIncentive(duration,daily_price){
 //get car daily price
 async function countTotalCost(duration,daily_price){
     return duration * daily_price
+}
+async function driverAvailability(psql, driver_id){
+    query = 
+    `SELECT * FROM booking
+     WHERE finished = false AND
+     driver_id = ${driver_id}`
 }
 exports.getBookingData = getBookingData;
 exports.insertBookingData = insertBookingData;

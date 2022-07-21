@@ -37,7 +37,7 @@ async function updateMembershipData(psql,membership_name,discount,id){
     return;
 }
 
-async function deleteMembershipData(psql){
+async function deleteMembershipData(psql,id){
     let query = 
     `DELETE FROM membership
     WHERE membership_id = ${id}`;

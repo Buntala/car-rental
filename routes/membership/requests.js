@@ -89,7 +89,6 @@ router.put('/update/:id',async(req,res)=>{
 //DELETE INCENTIVE DATA ON ID
 router.delete('/delete/:id',async(req,res)=>{
     let id = req.params.id;
-    let error;
     const client =  await pool.connect();
     try{
         paramValidate(id);

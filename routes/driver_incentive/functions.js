@@ -30,7 +30,8 @@ async function updateIncentiveData(psql,booking_id,incentive,id){
     `UPDATE driver_incentive 
     SET booking_id = ${booking_id},
         incentive = ${incentive}
-    WHERE driver_id = ${id};`
+    WHERE driver_incentive_id = ${id};`
+    console.log(query)
     let result = await psql.query(query);
     if (!result.rowCount){
         err_msg='No data with the ID';
@@ -39,7 +40,7 @@ async function updateIncentiveData(psql,booking_id,incentive,id){
     return;
 }
 
-async function deleteIncentiveData(psql){
+async function deleteIncentiveData(psql,id){
     let query = 
     `DELETE FROM driver_incentive
     WHERE driver_incentive_id = ${id}`;
