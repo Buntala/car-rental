@@ -4,10 +4,20 @@ const { pool } = require("../../utilities/db");
 const Joi = require("joi");
 
 // FUNCTIONS
-const getData = require('./functions').getCarData;
-const insertData = require('./functions').insertCarData;
-const updateData = require('./functions').updateCarData;
-const deleteData = require('./functions').deleteCarData;
+const {
+    getCarData,
+    insertCarData,
+    updateCarData,
+    deleteCarData
+} = require('./functions');
+
+const{
+    postCarJoiValidation,
+    getCarJoiValidation,
+    deleteCarJoiValidation,
+    updateCarJoiValidation
+} = require('./rules');
+
 const bodyValidate = require('../../utilities/data-validation').bodyValidate;
 const paramValidate = require('../../utilities/data-validation').integerParamValidate;
 
@@ -21,23 +31,23 @@ let joi_schema = Joi.object({
 });
 
 //GET CAR DATA
-router.get('/get',async(req,res)=>{
+router.get('/',async(req,res)=>{
     let result;
     const client =  await pool.connect();
-    result = await getData(client);
+    result = await getCarData(client);
     res.status(200).json(result);
     client.release();
     return;
 })
 
 //GET CAR DATA ON ID
-router.get('/get/:id',async(req,res)=>{
+router.get('/:id',async(req,res)=>{
     //get parameter id
-    let id = req.params.id;
+    let data = {...req.params};
     const client =  await pool.connect();
     try{
-        paramValidate(id);
-        let result = await getData(client,id);
+        bodyValidate(getCarJoiValidation, data)
+        let result = await getCarData(client,data);
         res.status(200).json(result);
         client.release();
         return;
@@ -49,12 +59,12 @@ router.get('/get/:id',async(req,res)=>{
 })
 
 //POST CAR DATA
-router.post('/post',async(req,res)=>{
+router.post('/',async(req,res)=>{
     let data = req.body;
     const client =  await pool.connect();
     try{
-        bodyValidate(joi_schema,data);
-        _ = await insertData(client,data.name,data.rent_price_daily,data.stock);
+        bodyValidate(postCarJoiValidation, data);
+        _ = await insertCarData(client,data);
         res.status(200).json(`Data Added Successfully`);
         client.release();
         return;
@@ -67,15 +77,13 @@ router.post('/post',async(req,res)=>{
 })
 
 //UPDATE CAR DATA ON ID
-router.put('/update/:id',async(req,res)=>{
-    let id = req.params.id;
-    let data = req.body;
+router.patch('/:id',async(req,res)=>{    
+    let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
     //body data validation
     try{
-        bodyValidate(joi_schema,data);
-        paramValidate(id);
-        await updateData(client,data.name,data.rent_price_daily,data.stock,id);
+        bodyValidate(updateCarJoiValidation,data);
+        await updateCarData(client,data)
         res.status(200).json('Data Updated')
         client.release();
         return;
@@ -88,13 +96,13 @@ router.put('/update/:id',async(req,res)=>{
 })
 
 //DELETE CAR DATA ON ID
-router.delete('/delete/:id',async(req,res)=>{
-    let id = req.params.id;
+router.delete('/:id',async(req,res)=>{
+    let data = {...req.params};
     let error;
     const client =  await pool.connect();
     try{
-        paramValidate(id);
-        _ = await deleteData(client,id);
+        bodyValidate(deleteCarJoiValidation, data)
+        _ = await deleteCarData(client,data);
         res.status(200).json('Data Deleted')
         client.release();
     }
