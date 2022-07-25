@@ -8,93 +8,84 @@ const {
     updateCarData,
     deleteCarData
 } = require('./functions');
-
 const{
     postCarJoiValidation,
     getCarJoiValidation,
     deleteCarJoiValidation,
     updateCarJoiValidation
 } = require('./rules');
-
-const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const {successResponse,errorResponse} = require('../../utilities/response-handler');
+const { 
+    bodyValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler,
+} = require('../../utilities/response-handler');
 
 async function getAllCar(req,res){
     const client =  await pool.connect();
     let result = await getCarData(client);
-    //send payload with no input data
-    const payload = await successResponse(req,"Data Send Sucessfully",result);
-    res.status(200).json(payload);
     client.release();
-    return;
+    successHandler(res, "Car List Information",result);
 }
-async function getOneCar(req,res){
+
+async function getOneCar(req,res,next){
     //get parameter id
     let data = {...req.params};
     const client =  await pool.connect();
     try{
         bodyValidate(getCarJoiValidation, data);
         let result = await getCarData(client,data);
-        const payload = await successResponse(req,"Data Send Sucessfully",result);
-        res.status(200).json(payload);
+        successHandler(res, "Car Detail Information",result[0]);
     }
     catch(error){
-        const payload = await errorResponse(req,error);
-        res.status(400).json(payload);
+        next(error);
     }
-    client.release();
-    return;
+    client.release();    
 }
 
-async function postCar(req,res){
+async function postCar(req,res,next){
     let data = req.body;
     const client =  await pool.connect();
     try{
         bodyValidate(postCarJoiValidation, data);
         result = await insertCarData(client,data);
-        //get payload with no rows result
-        const payload = await successResponse(req,"Data Send Sucessfully",result,data);
-        res.status(200).json(payload); 
+        //get payload with no rows result        
+        successHandler(res, "Car Data Send Sucessfully",result);
     }
     catch(error){
-        const payload = await errorResponse(req,error,data);
-        res.status(400).json(payload);
+        next(error);
     }
-    client.release();
-    return;
+    client.release();    
 }
-async function patchCar(req,res){
+
+async function patchCar(req,res,next){
     let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
     //Data validation
     try{
         bodyValidate(updateCarJoiValidation,data);
         result = await updateCarData(client,data);
-        const payload = await successResponse(req,"Data Updated Sucessfully",result,data);
-        res.status(200).json(payload);
+        successHandler(res, "Car Data Updated Sucessfully",result);
     }
     catch(error){
-        const payload = await errorResponse(req,error,data);
-        res.status(400).json(payload);
+        next(error);
     } 
-    client.release();
-    return;
+    client.release();    
 }
-async function deleteCar(req,res){
+
+async function deleteCar(req,res,next){
     let data = {...req.params};
     const client =  await pool.connect();
     //Data validation
     try{
         bodyValidate(deleteCarJoiValidation, data);
         result = await deleteCarData(client,data);
-        const payload = await successResponse(req,"Data Deleted Sucessfully",result);
-        res.status(200).json(payload);
+        successHandler(res, "Car Data Deleted Sucessfully",result);        
     }
-    catch (error){
-        const payload = await errorResponse(req,error,data);
-        res.status(400).json(payload)
-    }
-    client.release();
-    return;
+    catch(error){
+        next(error);
+    } 
+    client.release(); 
 }
+
 module.exports = {getAllCar,getOneCar,postCar,patchCar,deleteCar}
