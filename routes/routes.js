@@ -8,6 +8,7 @@ const booking = require('./booking/requests')
 const driver = require('./driver/requests')
 const incentive = require('./driver_incentive/requests')
 const membership = require('./membership/requests')
+const report  = require('./report/requests')
 
 const router = express.Router();
           
@@ -17,5 +18,6 @@ router.use('/booking',booking)
 router.use('/driver',driver)
 router.use('/incentive',incentive)
 router.use('/membership',membership)
+router.use('/report',report)
 
 module.exports = router

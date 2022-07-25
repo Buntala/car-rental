@@ -34,6 +34,11 @@ async function insertBookingData(psql, customer_id,cars_id,start_time,end_time,f
     let duration = await countDay(start_time,end_time);
     //count total car rent cost
     let total_cost = await countTotalCost(duration,price);
+    //Availability check
+    let notAvailable = await avalabilityCheck(psql,cars_id,driver_id);
+    if (notAvailable){
+        throw notAvailable
+    }
     //membership discount
     if (membership_discount){
         discount = await countDiscount(duration,price,membership_discount);
@@ -43,16 +48,15 @@ async function insertBookingData(psql, customer_id,cars_id,start_time,end_time,f
     //count total driver cost
     if (driver_id){
         driver_incentive = await countDriverIncentive(duration,price);
-        let driver_cost = await getDriverCost(psql,driver_id);
+        total_driver_cost = await getDriverCost(psql,driver_id);
         //total driver cost is incentive + total duration cost 
-        total_driver_cost = parseInt(driver_incentive) + parseInt(driver_cost);
+        //total_driver_cost = parseInt(driver_incentive) + parseInt(driver_cost);
     }
     //insert query, then returns the booking id
     let query = 
     `INSERT INTO booking(customer_id,cars_id,start_time,end_time,total_cost,finished,discount,booking_type_id,driver_id,total_driver_cost) 
     VALUES ('${customer_id}',${cars_id},'${start_time}','${end_time}',${total_cost},${finished},${discount},${booking_type_id},${driver_id},${total_driver_cost})
     RETURNING booking_id`;
-    console.log(query)
     result = await psql.query(query);
     //get booking id of inserted data
     const inserted_booking_id  = result.rows[0].booking_id
@@ -147,7 +151,35 @@ async function driverAvailability(psql, driver_id){
     `SELECT * FROM booking
      WHERE finished = false AND
      driver_id = ${driver_id}`
+    result = await psql.query(query);
+    return result.rowCount;
 }
+async function carAvailability(psql,cars_id){
+    query = 
+    `SELECT * FROM booking
+     WHERE finished = false AND
+     cars_id = ${cars_id}`
+    result = await psql.query(query);
+    return result.rowCount;
+}
+async function getCarAmount(psql,cars_id){
+    cars = await getCarData(psql, cars_id);
+    //console.log(cars);
+    return cars[0].stock;
+}
+async function avalabilityCheck(psql,cars_id,driver_id){
+    let carTaken = await carAvailability(psql,cars_id);
+    let driverStatus = await driverAvailability(psql,driver_id);
+    let carAmount = await getCarAmount(psql,cars_id);
+    if (driverStatus){
+        return "This driver is currently booked";
+    }
+    if (carTaken >= carAmount){
+        return "This car is fully booked";
+    }
+    return;
+}
+
 exports.getBookingData = getBookingData;
 exports.insertBookingData = insertBookingData;
 exports.updateBookingData = updateBookingData;
