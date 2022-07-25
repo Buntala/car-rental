@@ -5,11 +5,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const routes = require('./routes/routes');
 const http = require('http');
-
+const { errorHandler } = require('./utilities/response-handler');
+  
 const app = express();
 app.use(bodyParser.json() );
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(routes);
+app.use(errorHandler);
 
 let server = http.createServer(app);
 server.listen(process.env.PORT,()=>{
