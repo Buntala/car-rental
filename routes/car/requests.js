@@ -1,7 +1,5 @@
 // IMPORTS
-const express = require('express');
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
 const {
@@ -19,97 +17,84 @@ const{
 } = require('./rules');
 
 const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const paramValidate = require('../../utilities/data-validation').integerParamValidate;
+const {successResponse,errorResponse} = require('../../utilities/response-handler');
 
-const router = express.Router();
-
-//VALIDATION SCHEMA
-let joi_schema = Joi.object({
-    name:Joi.string().required(),
-    rent_price_daily: Joi.number().required(),
-    stock:Joi.number().required()
-});
-
-//GET CAR DATA
-router.get('/',async(req,res)=>{
-    let result;
+async function getAllCar(req,res){
     const client =  await pool.connect();
-    result = await getCarData(client);
-    res.status(200).json(result);
+    let result = await getCarData(client);
+    //send payload with no input data
+    const payload = await successResponse(req,"Data Send Sucessfully",result);
+    res.status(200).json(payload);
     client.release();
     return;
-})
-
-//GET CAR DATA ON ID
-router.get('/:id',async(req,res)=>{
+}
+async function getOneCar(req,res){
     //get parameter id
     let data = {...req.params};
     const client =  await pool.connect();
     try{
-        bodyValidate(getCarJoiValidation, data)
+        bodyValidate(getCarJoiValidation, data);
         let result = await getCarData(client,data);
-        res.status(200).json(result);
-        client.release();
-        return;
+        const payload = await successResponse(req,"Data Send Sucessfully",result);
+        res.status(200).json(payload);
     }
-    catch(err){
-        res.status(400).json(err);
-        return;
+    catch(error){
+        const payload = await errorResponse(req,error);
+        res.status(400).json(payload);
     }
-})
+    client.release();
+    return;
+}
 
-//POST CAR DATA
-router.post('/',async(req,res)=>{
+async function postCar(req,res){
     let data = req.body;
     const client =  await pool.connect();
     try{
         bodyValidate(postCarJoiValidation, data);
-        _ = await insertCarData(client,data);
-        res.status(200).json(`Data Added Successfully`);
-        client.release();
-        return;
+        result = await insertCarData(client,data);
+        //get payload with no rows result
+        const payload = await successResponse(req,"Data Send Sucessfully",result,data);
+        res.status(200).json(payload); 
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
+        const payload = await errorResponse(req,error,data);
+        res.status(400).json(payload);
     }
-})
-
-//UPDATE CAR DATA ON ID
-router.patch('/:id',async(req,res)=>{    
+    client.release();
+    return;
+}
+async function patchCar(req,res){
     let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
-    //body data validation
+    //Data validation
     try{
         bodyValidate(updateCarJoiValidation,data);
-        await updateCarData(client,data)
-        res.status(200).json('Data Updated')
-        client.release();
-        return;
+        result = await updateCarData(client,data);
+        const payload = await successResponse(req,"Data Updated Sucessfully",result,data);
+        res.status(200).json(payload);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
-    }
-})
-
-//DELETE CAR DATA ON ID
-router.delete('/:id',async(req,res)=>{
+        const payload = await errorResponse(req,error,data);
+        res.status(400).json(payload);
+    } 
+    client.release();
+    return;
+}
+async function deleteCar(req,res){
     let data = {...req.params};
-    let error;
     const client =  await pool.connect();
+    //Data validation
     try{
-        bodyValidate(deleteCarJoiValidation, data)
-        _ = await deleteCarData(client,data);
-        res.status(200).json('Data Deleted')
-        client.release();
+        bodyValidate(deleteCarJoiValidation, data);
+        result = await deleteCarData(client,data);
+        const payload = await successResponse(req,"Data Deleted Sucessfully",result);
+        res.status(200).json(payload);
     }
     catch (error){
-        res.status(400).json(error)
-        client.release()
-        return;
+        const payload = await errorResponse(req,error,data);
+        res.status(400).json(payload)
     }
-})
-module.exports = router
+    client.release();
+    return;
+}
+module.exports = {getAllCar,getOneCar,postCar,patchCar,deleteCar}
