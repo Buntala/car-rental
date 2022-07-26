@@ -1,9 +1,8 @@
-async function getIncentiveData(psql,id=null){
-    let query = 
-    'SELECT * FROM driver_incentive ';
+async function getIncentiveData(psql,data=null){
+    let query = 'SELECT * FROM driver_incentive ';
     //Get data with ID 
-    if (id !== null){
-        query += `WHERE driver_incentive_id = ${id};`
+    if (data){
+        query += `WHERE driver_incentive_id = ${data.id};`
         let result = await psql.query(query);
         //check if query is successful
         if (result.rowCount===0){
@@ -16,44 +15,46 @@ async function getIncentiveData(psql,id=null){
     return result.rows;
 }
 
-async function insertIncentiveData(psql,booking_id,incentive){
+async function insertIncentiveData(psql,data){
     let query = 
     `INSERT INTO driver_incentive(booking_id,incentive)
-     VALUES(${booking_id},${incentive});`
-     console.log(query)
-    _ = await psql.query(query);
-    return; 
+     VALUES(${data.booking_id},${data.incentive})
+     RETURNING *`;
+    let result = await psql.query(query);
+    return result.rows[0];  
 }
 
-async function updateIncentiveData(psql,booking_id,incentive,id){
+async function updateIncentiveData(psql,data){
     let query = 
     `UPDATE driver_incentive 
-    SET booking_id = ${booking_id},
-        incentive = ${incentive}
-    WHERE driver_incentive_id = ${id};`
-    console.log(query)
+    SET booking_id = ${data.booking_id},
+        incentive = ${data.incentive}
+    WHERE driver_incentive_id = ${data.id}
+    RETURNING *`
     let result = await psql.query(query);
     if (!result.rowCount){
         err_msg='No data with the ID';
         throw err_msg;
     }
-    return;
+    return result.rows[0];
 }
 
-async function deleteIncentiveData(psql,id){
+async function deleteIncentiveData(psql,data){
     let query = 
     `DELETE FROM driver_incentive
-    WHERE driver_incentive_id = ${id}`;
+    WHERE driver_incentive_id = ${data.id}
+    RETURNING *`;
     let result = await psql.query(query);
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID';
         throw err_msg;
     }
-    return;
+    return result.rows[0];
 }
-
-exports.getIncentiveData = getIncentiveData;
-exports.insertIncentiveData = insertIncentiveData;
-exports.updateIncentiveData = updateIncentiveData;
-exports.deleteIncentiveData = deleteIncentiveData;
+module.exports = {
+    getIncentiveData,
+    insertIncentiveData,
+    updateIncentiveData,
+    deleteIncentiveData
+}

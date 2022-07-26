@@ -8,6 +8,16 @@ function bodyValidate(schema, data) {
     }
     return;
 };
+
+function dataValidate(schema, data) {
+    const {error} = schema.validate(data)
+    if (error){
+        throw error.message;
+    }
+    return;
+};
+
+//delete this later
 function integerParamValidate(id){
     schema = Joi.number();
     //check if id is numeric
@@ -18,5 +28,7 @@ function integerParamValidate(id){
     }
     return;
 }
-exports.bodyValidate=bodyValidate
-exports.integerParamValidate = integerParamValidate
+module.exports={
+    dataValidate,
+    bodyValidate
+}

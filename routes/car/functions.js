@@ -10,7 +10,7 @@ async function getCarData(psql,data=null) {
             let err_msg="ID is invalid!";
             throw err_msg;
         }
-        return result.rows;
+        return result.rows[0];
     }
     let result = await psql.query(query);
     return result.rows;
@@ -20,8 +20,7 @@ async function insertCarData(psql,data)  {
     let query = 
     `INSERT INTO cars(name,rent_price_daily,stock) 
     VALUES ('${data.name}',${data.rent_price_daily},${data.stock})
-    RETURNING *
-    `;
+    RETURNING *`;
     let result = await psql.query(query);
     return result.rows[0];
 }
@@ -54,7 +53,7 @@ async function deleteCarData (psql,data) {
         let err_msg='No data with the ID';
         throw err_msg;
     }
-    return result.rows;
+    return result.rows[0];
 }
 
 

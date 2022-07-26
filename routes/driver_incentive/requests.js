@@ -1,106 +1,94 @@
 // IMPORTS
 const express = require('express');
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
-const getData = require('./functions').getIncentiveData;
-const insertData = require('./functions').insertIncentiveData;
-const updateData = require('./functions').updateIncentiveData;
-const deleteData = require('./functions').deleteIncentiveData;
-const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const paramValidate = require('../../utilities/data-validation').integerParamValidate;
+const {
+    getIncentiveData,
+    insertIncentiveData,
+    updateIncentiveData,
+    deleteIncentiveData
+} = require('./functions')
+const{
+    getIncentiveJoiValidation,
+    postIncentiveJoiValidation,
+    updateIncentiveJoiValidation,
+    deleteIncentiveJoiValidation
+} = require('./rules');
+const {
+    dataValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler
+} = require('../../utilities/response-handler');
 
-const router = express.Router();
-
-let joi_schema = Joi.object({
-    booking_id:Joi.number().required(),
-    incentive: Joi.number().required()
-});
-
-
-//GET INCENTIVE DATA
-router.get('/get',async(req,res)=>{
-    let result;
+async function getIncentiveAll(req,res){
     const client =  await pool.connect();
-    result = await getData(client);
-    res.status(200).json(result);
+    let result = await getIncentiveData(client);
     client.release();
-    return;
-})
+    successHandler(res, "Driver Incentive List Information",result);
+}
 
-//GET INCENTIVE DATA ON ID
-router.get('/get/:id',async(req,res)=>{
+async function getIncentiveOne(req,res,next){
     //get parameter id
-    let id = req.params.id;
+    let data = {...req.params};
     const client =  await pool.connect();
     try{
-        paramValidate(id);
-        let result = await getData(client,id);
-        res.status(200).json(result);
-        client.release();
-        return;
+        dataValidate(getIncentiveJoiValidation, data);
+        let result = await getIncentiveData(client,data);
+        successHandler(res, "Driver Incentive Detail Information",result[0]);
     }
-    catch(err){
-        res.status(400).json(err);
-        return;
+    catch(error){
+        next(error);
     }
-})
-
-//POST INCENTIVE DATA
-router.post('/post',async(req,res)=>{
+    client.release();
+}
+async function postIncentive(req,res,next){
     let data = req.body;
     const client =  await pool.connect();
     try{
-        bodyValidate(joi_schema,data);
-        _ = await insertData(client,data.booking_id,data.incentive);
-        res.status(200).json(`Data Added Successfully`);
-        client.release();
-        return;
+        dataValidate(postIncentiveJoiValidation, data);
+        result = await insertIncentiveData(client,data);
+        //get payload with no rows result        
+        successHandler(res, "Driver Incentive Data Send Sucessfully",result);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
+        next(error);
     }
-})
-
-//UPDATE INCENTIVE DATA ON ID
-router.put('/update/:id',async(req,res)=>{
-    let id = req.params.id;
-    let data = req.body;
+    client.release();   
+}
+async function patchIncentive(req,res,next){
+    let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
-    //body data validation
+    //Data validation
     try{
-        bodyValidate(joi_schema,data);
-        paramValidate(id);
-        await updateData(client,data.booking_id,data.incentive,id);
-        res.status(200).json('Data Updated')
-        client.release();
-        return;
+        dataValidate(updateIncentiveJoiValidation,data);
+        result = await updateIncentiveData(client,data);
+        successHandler(res, "Driver Incentive Data Updated Sucessfully",result);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
-    }
-})
-
-//DELETE INCENTIVE DATA ON ID
-router.delete('/delete/:id',async(req,res)=>{
-    let id = req.params.id;
-    let error;
+        next(error);
+    } 
+    client.release();    
+}
+async function deleteIncentive(req,res,next){
+    let data = {...req.params};
     const client =  await pool.connect();
+    //Data validation
     try{
-        paramValidate(id);
-        _ = await deleteData(client,id);
-        res.status(200).json('Data Deleted')
-        client.release();
+        dataValidate(deleteIncentiveJoiValidation, data);
+        result = await deleteIncentiveData(client,data);
+        successHandler(res, "Driver Incentive Data Deleted Sucessfully",result);        
     }
-    catch (error){
-        res.status(400).json(error)
-        client.release()
-        return;
-    }
-})
-module.exports = router
+    catch(error){
+        next(error);
+    } 
+    client.release(); 
+}
+module.exports = {
+    getIncentiveAll,
+    getIncentiveOne,
+    postIncentive,
+    patchIncentive,
+    deleteIncentive
+}

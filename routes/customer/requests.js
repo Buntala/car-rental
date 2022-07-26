@@ -1,110 +1,99 @@
 // IMPORTS
-const express = require('express');
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
-const getData = require('./functions').getCustomerData;
-const insertData = require('./functions').insertCustomerData;
-const updateData = require('./functions').updateCustomerData;
-const deleteData = require('./functions').deleteCustomerData;
-const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const paramValidate = require('../../utilities/data-validation').integerParamValidate;
+const {
+    getCustData,
+    insertCustData,
+    updateCustData,
+    deleteCustData
+} = require('./functions')
 
-const router = express.Router();
+const{
+    postCustJoiValidation,
+    getCustJoiValidation,
+    deleteCustJoiValidation,
+    updateCustJoiValidation
+} = require('./rules');
 
-let joi_schema = Joi.object({
-    name:Joi.string().required(),
-    nik: Joi.number().required(),
-    phone_number:Joi.number().required(),
-    membership_id:Joi.number()
-});
 
-//GET CUSTOMER DATA
-router.get('/get',async(req,res)=>{
-    let result;
+const {
+    dataValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler
+} = require('../../utilities/response-handler');
+
+
+async function getCustAll(req,res){
     const client =  await pool.connect();
-    result = await getData(client);
-    res.status(200).json(result);
+    let result = await getCustData(client);
     client.release();
-    return;
-})
+    successHandler(res, "Customer List Information",result);
+}
 
-//GET CUSTOMER DATA ON ID
-router.get('/get/:id',async(req,res)=>{
-    let id = req.params.id;
+async function getCustOne(req,res,next){
+    let data = {...req.params};
     const client =  await pool.connect();
     //params data validation
     try{
-        paramValidate(id);
-        let result = await getData(client,id);
-        res.status(200).json(result);
-        client.release();
-        return;
-    }
-    catch(err){
-        res.status(400).json(err);
-        return;
-    }
-})
-
-//POST CUSTOMER DATA
-router.post('/post',async(req,res)=>{
-    let data = req.body;
-    //let result;
-    const client =  await pool.connect();
-    console.log(data.phone_number)
-    try{
-        bodyValidate(joi_schema,data);
-        _ = await insertData(client,data.name,data.nik,data.phone_number,data.membership_id);
-        res.status(200).json(`Data Added Successfully`);
-        client.release();
-        return;
+        dataValidate(getCustJoiValidation, data);
+        let result = await getCustData(client,data);
+        successHandler(res, "Customer Detail Information",result[0]);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
+        next(error);
     }
-})
+    client.release();
+}
 
-//UPDATE CUSTOMER DATA ON ID
-router.put('/update/:id',async(req,res)=>{
-    let id = req.params.id;
+async function postCust(req,res,next){
     let data = req.body;
+    const client =  await pool.connect();
+    try{
+        dataValidate(postCustJoiValidation, data);
+        result = await insertCustData(client,data);
+        successHandler(res, "Customer Data Send Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    }
+    client.release();
+}
+async function patchCust(req,res,next){
+    let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
     //Data validation
     try{
-        bodyValidate(joi_schema,data);
-        paramValidate(id);
-        await updateData(client,data.name,data.nik,data.phone_number,id); 
-        res.status(200).json('Data Updated')
-        client.release();
-        return;
+        dataValidate(updateCustJoiValidation,data);
+        result = await updateCustData(client,data);
+        successHandler(res, "Customer Data Updated Sucessfully",result);
     }
-
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
-    }
-})
-
-//DELETE CUSTOMER DATA ON ID
-router.delete('/delete/:id',async(req,res)=>{
-    let id = req.params.id;
+        next(error);
+    } 
+    client.release();
+    return;
+}
+async function deleteCust(req,res,next){
+    let data = {...req.params};
     const client =  await pool.connect();
-    //body data validation
+    //Data validation
     try{
-        paramValidate(id);
-        _ = await deleteData(client,id);
-        res.status(200).json('Data Deleted')
-        client.release();
+        dataValidate(deleteCustJoiValidation, data);
+        result = await deleteCustData(client,data);
+        successHandler(res, "Customer Data Deleted Sucessfully",result); 
     }
     catch (error){
-        res.status(400).json(error)
-        client.release()
-        return;
+        next(error);
     }
-})
-module.exports = router
+    client.release();
+    return;
+}
+module.exports = {
+    getCustAll,
+    getCustOne,
+    postCust,
+    patchCust,
+    deleteCust
+}

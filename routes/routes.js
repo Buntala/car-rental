@@ -3,10 +3,10 @@ const express = require('express');
 
 //routes
 const cars = require('./car/routes')
-const customer = require('./customer/requests')
-const booking = require('./booking/requests')
+const customer = require('./customer/routes')
+const booking = require('./booking/routes')
 const driver = require('./driver/requests')
-const incentive = require('./driver_incentive/requests')
+const incentive = require('./driver_incentive/routes')
 const membership = require('./membership/requests')
 const report  = require('./report/requests')
 

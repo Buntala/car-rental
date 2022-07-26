@@ -22,27 +22,34 @@ class CarsValidation {
     }
 }
 
-exports.getCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setId()
-    );
+getCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setId()
+);
 
-exports.postCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setName()
-        .setRentPriceDaily()
-        .setStock()
-    );
+postCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setName()
+    .setRentPriceDaily()
+    .setStock()
+);
 
-exports.updateCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setId()
-        .setName()
-        .setRentPriceDaily()
-        .setStock()
-    );
+updateCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setId()
+    .setName()
+    .setRentPriceDaily()
+    .setStock()
+);
 
-exports.deleteCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setId()
-    );
+deleteCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setId()
+);
+
+module.exports ={
+    getCarJoiValidation,
+    postCarJoiValidation,
+    updateCarJoiValidation,
+    deleteCarJoiValidation
+}

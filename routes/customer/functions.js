@@ -1,10 +1,10 @@
-async function getCustomerData(psql,id=null){
+async function getCustData(psql,data=null){
     //select all with date convert to string
     let query = 'SELECT * FROM customer ';
     //Get data with id
-    if (id !== null){
+    if (data !== null){
         //check if id is numeric
-        query += `WHERE customer_id = ${id};`
+        query += `WHERE customer_id = ${data.id};`
         let result = await psql.query(query);
         //check if query is successful
         if (result.rowCount===0){
@@ -17,43 +17,49 @@ async function getCustomerData(psql,id=null){
     return result.rows;
 }
 
-async function insertCustomerData(psql,name,nik,phone_number,membership_id=null){
+async function insertCustData(psql,data){
     let query = 
     `INSERT INTO customer(name,nik,phone_number,membership_id)
-    VALUES ('${name}',${nik},'${phone_number}',${membership_id})`;
+    VALUES ('${data.name}',${data.nik},'${data.phone_number}',${data.membership_id?data.membership_id:null})
+    RETURNING *`;
     result = await psql.query(query);
-    return;
+    return result.rows;
 }
-async function updateCustomerData(psql,name,nik,phone_number,id){
+async function updateCustData(psql,data){
     let query =  
     `UPDATE customer 
-    SET name = '${name}',
-        nik = '${nik}',
-        phone_number = '${phone_number}'
-    WHERE customer_id = ${id}`;
-
+    SET name = '${data.name}',
+        nik = '${data.nik}',
+        phone_number = '${data.phone_number}',
+        membership_id = ${data.membership_id? data.membership_id : null}
+    WHERE customer_id = ${data.id}
+    RETURNING *`;
     let result = await psql.query(query);
     //checks if data with id was updated
     if (!result.rowCount){
         let err_msg='No data with the ID';
         throw err_msg;
     }
-    return;
+    return result.rows;
 }
-async function deleteCustomerData(psql,id){
+async function deleteCustData(psql,data){
     let query = 
     `DELETE FROM customer
-    WHERE customer_id = ${id}`;
+    WHERE customer_id = ${data.id}
+    RETURNING *`;
     let result = await psql.query(query);
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID'
         throw err_msg;
     }
-    return;
+    return result.rows;
 }
 
-exports.getCustomerData = getCustomerData;
-exports.insertCustomerData = insertCustomerData;
-exports.updateCustomerData = updateCustomerData;
-exports.deleteCustomerData = deleteCustomerData;
+module.exports={
+    getCustData,
+    insertCustData,
+    updateCustData,
+    deleteCustData
+}
+
