@@ -1,24 +1,93 @@
 // IMPORTS
-const express = require('express');
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
-const getData = require('./functions').getDriverData;
-const insertData = require('./functions').insertDriverData;
-const updateData = require('./functions').updateDriverData;
-const deleteData = require('./functions').deleteDriverData;
-const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const paramValidate = require('../../utilities/data-validation').integerParamValidate;
+const {
+    getDriverData,
+    insertDriverData,
+    updateDriverData,
+    deleteDriverData
+} = require('./functions');
+const{
+    getDriverJoiValidation,
+    postDriverJoiValidation,
+    updateDriverJoiValidation,
+    deleteDriverJoiValidation
+} = require('./rules');
+const { 
+    dataValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler
+} = require('../../utilities/response-handler');
 
-const router = express.Router();
+async function getDriverAll(req,res){
+    const client =  await pool.connect();
+    let result = await getDriverData(client);
+    client.release();
+    successHandler(res, "Driver List Information",result);
+}
+async function getDriverOne(req,res,next){
+    //get parameter id
+    let data = {...req.params};
+    const client =  await pool.connect();
+    try{
+        dataValidate(getDriverJoiValidation, data);
+        let result = await getDriverData(client,data);
+        successHandler(res, "Driver Detail Information",result);
+    }
+    catch(error){
+        next(error);
+    }
+    client.release();    
+}
 
-let joi_schema = Joi.object({
-    name:Joi.string().required(),
-    nik: Joi.number().required(),
-    phone_number:Joi.number().required(),
-    daily_cost:Joi.number().required()
-});
+async function postDriver(req,res,next){
+    let data = req.body;
+    const client =  await pool.connect();
+    try{
+        dataValidate(postDriverJoiValidation, data);
+        result = await insertDriverData(client,data);
+        //get payload with no rows result        
+        successHandler(res, "Driver Data Send Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    }
+    client.release();    
+}
+
+async function patchDriver(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(updateDriverJoiValidation,data);
+        result = await updateDriverData(client,data);
+        successHandler(res, "Car Data Updated Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+
+async function deleteDriver(req,res,next){
+    let data = {...req.params};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(deleteDriverJoiValidation, data);
+        result = await deleteDriverData(client,data);
+        successHandler(res, "Car Data Deleted Sucessfully",result);        
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release(); 
+}
+
+/*
 
 //GET DRIVER DATA
 router.get('/get',async(req,res)=>{
@@ -103,5 +172,11 @@ router.delete('/delete/:id',async(req,res)=>{
         client.release()
         return;
     }
-})
-module.exports = router
+})*/
+module.exports = {
+    getDriverAll,
+    getDriverOne,
+    postDriver,
+    patchDriver,
+    deleteDriver
+}

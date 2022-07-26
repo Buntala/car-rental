@@ -3,12 +3,6 @@ const { pool } = require("../../utilities/db");
 const Joi = require("joi");
 
 // FUNCTIONS
-
-/*
-const getData = require('./functions').getBookingData;
-const insertData = require('./functions').insertBookingData;
-const updateData = require('./functions').updateBookingData;
-const deleteData = require('./functions').deleteBookingData;*/
 const {
     getBookingData,
     insertBookingData,
@@ -29,15 +23,7 @@ const {
 
 //VALIDATION SCHEMA
 //date validate please
-let joi_schema = Joi.object({
-    customer_id:Joi.number().required(),
-    cars_id: Joi.number().required(),
-    start_time:Joi.date().required(),
-    end_time:Joi.date().required(),
-    finished:Joi.boolean().required(),
-    booking_type_id:Joi.number().required(),
-    driver_id:Joi.number(),
-});
+
 async function getBookAll(req,res){
     let result;
     const client =  await pool.connect();

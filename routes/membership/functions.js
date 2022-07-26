@@ -1,57 +1,61 @@
-async function getMembershipData(psql,id=null){
+async function getMembershipData(psql,data=null){
     let query = 
     'SELECT * FROM membership ';
     //Get data with ID 
-    if (id !== null){
-        query += `WHERE membership_id = ${id};`
+    if (data){
+        query += `WHERE membership_id = ${data.id};`
         let result = await psql.query(query);
         //check if query is successful
         if (result.rowCount===0){
             let err_msg="ID is invalid!";
             throw err_msg;
         }
-        return result.rows;
+        return result.rows[0];
     }
     let result = await psql.query(query);
     return result.rows;
 }
-async function insertMembershipData(psql,membership_name,discount){
+async function insertMembershipData(psql,data){
     let query = 
-    `INSERT INTO membership(membership_name,discount)
-      VALUES('${membership_name}',${discount})`
-    _ = await psql.query(query);
-    return; 
+    `INSERT INTO membership(name,discount)
+      VALUES('${data.name}',${data.discount})
+      RETURNING *`;
+    result = await psql.query(query);
+    return result.rows[0]; 
 }
 
-async function updateMembershipData(psql,membership_name,discount,id){
+async function updateMembershipData(psql,data){
     let query = 
     `UPDATE membership 
-    SET membership_name = '${membership_name}',
-        discount = ${discount}
-    WHERE membership_id = ${id};`
+    SET name = '${data.name}',
+        discount = ${data.discount}
+    WHERE membership_id = ${data.id}
+    RETURNING *`;
+    console.log(query)
     let result = await psql.query(query);
     if (!result.rowCount){
         err_msg='No data with the ID';
         throw err_msg;
     }
-    return;
+    return result.rows[0]; 
 }
 
-async function deleteMembershipData(psql,id){
+async function deleteMembershipData(psql,data){
     let query = 
     `DELETE FROM membership
-    WHERE membership_id = ${id}`;
+    WHERE membership_id = ${data.id}
+    RETURNING *`;
     let result = await psql.query(query);
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID';
         throw err_msg;
     }
-    return;
+    return result.rows[0]; 
 }
-
-
-exports.getMembershipData = getMembershipData;
-exports.insertMembershipData = insertMembershipData;
-exports.deleteMembershipData = deleteMembershipData;
-exports.updateMembershipData = updateMembershipData;
+module.exports = {
+    getMembershipData,
+    insertMembershipData,
+    deleteMembershipData,
+    updateMembershipData
+}

@@ -1,105 +1,96 @@
 // IMPORTS
-const express = require('express');
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
-const getData = require('./functions').getMembershipData;
-const insertData = require('./functions').insertMembershipData;
-const updateData = require('./functions').updateMembershipData;
-const deleteData = require('./functions').deleteMembershipData;
-const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const paramValidate = require('../../utilities/data-validation').integerParamValidate;
+const {
+    getMembershipData,
+    insertMembershipData,
+    updateMembershipData,
+    deleteMembershipData} = require('./functions');
+const {
+    getMembershipJoiValidation,
+    postMembershipJoiValidation,
+    updateMembershipJoiValidation,
+    deleteMembershipJoiValidation
+} = require('./rules');
+const{
+    dataValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler
+} = require('../../utilities/response-handler');
 
-const router = express.Router();
 
-let joi_schema = Joi.object({
-    membership_name:Joi.string().required(),
-    discount: Joi.number().required()
-});
-
-
-//GET INCENTIVE DATA
-router.get('/get',async(req,res)=>{
-    let result;
+async function getMemberAll(req,res){
     const client =  await pool.connect();
-    result = await getData(client);
-    res.status(200).json(result);
+    let result = await getMembershipData(client);
     client.release();
-    return;
-})
+    successHandler(res, "Membership List Information",result);
+}
 
-//GET INCENTIVE DATA ON ID
-router.get('/get/:id',async(req,res)=>{
+async function getMemberOne(req,res,next){
     //get parameter id
-    let id = req.params.id;
+    let data = {...req.params};
     const client =  await pool.connect();
     try{
-        paramValidate(id);
-        let result = await getData(client,id);
-        res.status(200).json(result);
-        client.release();
-        return;
+        dataValidate(getMembershipJoiValidation, data);
+        let result = await getMembershipData(client,data);
+        successHandler(res, "Membership Detail Information",result);
     }
-    catch(err){
-        res.status(400).json(err);
-        return;
+    catch(error){
+        next(error);
     }
-})
+    client.release();    
+}
 
-//POST INCENTIVE DATA
-router.post('/post',async(req,res)=>{
+async function postMember(req,res,next){
     let data = req.body;
     const client =  await pool.connect();
     try{
-        bodyValidate(joi_schema,data);
-        _ = await insertData(client,data.membership_name,data.discount);
-        res.status(200).json(`Data Added Successfully`);
-        client.release();
-        return;
+        dataValidate(postMembershipJoiValidation, data);
+        result = await insertMembershipData(client,data);
+        //get payload with no rows result        
+        successHandler(res, "Membership Data Send Sucessfully",result);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
+        next(error);
     }
-})
-
-//UPDATE INCENTIVE DATA ON ID
-router.put('/update/:id',async(req,res)=>{
-    let id = req.params.id;
-    let data = req.body;
+    client.release(); 
+}
+async function patchMember(req,res,next){
+    let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
-    //body data validation
+    //Data validation
     try{
-        bodyValidate(joi_schema,data);
-        paramValidate(id);
-        await updateData(client,data.membership_name,data.discount,id);
-        res.status(200).json('Data Updated')
-        client.release();
-        return;
+        dataValidate(updateMembershipJoiValidation,data);
+        result = await updateMembershipData(client,data);
+        successHandler(res, "Membership Data Updated Sucessfully",result);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
-    }
-})
+        next(error);
+    } 
+    client.release();    
+}
 
-//DELETE INCENTIVE DATA ON ID
-router.delete('/delete/:id',async(req,res)=>{
-    let id = req.params.id;
+async function deleteMember(req,res,next){
+    let data = {...req.params};
     const client =  await pool.connect();
+    //Data validation
     try{
-        paramValidate(id);
-        _ = await deleteData(client,id);
-        res.status(200).json('Data Deleted')
-        client.release();
+        dataValidate(deleteMembershipJoiValidation, data);
+        result = await deleteMembershipData(client,data);
+        successHandler(res, "Car Data Deleted Sucessfully",result);        
     }
-    catch (error){
-        res.status(400).json(error)
-        client.release()
-        return;
-    }
-})
-module.exports = router
+    catch(error){
+        next(error);
+    } 
+    client.release(); 
+}
+
+module.exports = {
+    getMemberAll,
+    getMemberOne,
+    postMember,
+    patchMember,
+    deleteMember
+}

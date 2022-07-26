@@ -22,19 +22,19 @@ class CarsValidation {
     }
 }
 
-getCarJoiValidation = Joi.object(
+const getCarJoiValidation = Joi.object(
     new CarsValidation()
     .setId()
 );
 
-postCarJoiValidation = Joi.object(
+const postCarJoiValidation = Joi.object(
     new CarsValidation()
     .setName()
     .setRentPriceDaily()
     .setStock()
 );
 
-updateCarJoiValidation = Joi.object(
+const updateCarJoiValidation = Joi.object(
     new CarsValidation()
     .setId()
     .setName()
