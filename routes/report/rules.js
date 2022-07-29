@@ -18,19 +18,19 @@ const getIncomeReportJoiValidation = Joi.object(
     new ReportValidation()
     .setStartTime()
     .setEndTime()
-).with('start_time','end_time');
+)
 const getDriverReportJoiValidation = Joi.object(
     new ReportValidation()
     .setId()
     .setStartTime()
     .setEndTime()
-).with('start_time','end_time');
+)
 const getCarReportJoiValidation = Joi.object(
     new ReportValidation()
     .setId()
     .setStartTime()
     .setEndTime()
-).with('start_time','end_time');
+)
 
 
 module.exports = {

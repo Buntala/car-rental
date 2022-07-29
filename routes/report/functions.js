@@ -8,10 +8,9 @@ async function getCompanyIncomeReport(psql,data){
         coalesce(sum(b.total_cost-b.discount+b.total_driver_cost),0) as "total_gross_income"
         from booking b
         inner join driver d on d.driver_id = b.driver_id
-        where b.finished = true ${data.start_time?`and end_time >= '${data.start_time}' and end_time <= '${data.end_time}'`:''}
+        where b.finished = true ${data.start_time?`and end_time >= '${data.start_time}'`:''} ${data.end_time?`and end_time <= '${data.end_time}'`:''}
     `
     let result = await psql.query(query);
-    console.log(result.rowCount)
     let result_data = result.rows[0]
     result_data['total_driver_expense'] = parseInt(result_data.total_driver_cost) + parseInt(result_data.total_incentive) 
     result_data['total_nett_income'] = parseInt(result_data.total_gross_income) - parseInt(result_data.total_incentive) - driver_day_cost
