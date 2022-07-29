@@ -9,9 +9,9 @@ async function getCustData(psql,data=null){
         //check if query is successful
         if (result.rowCount===0){
             let err_msg="ID is invalid!";
-            throw err_msg;
+            throw new Error(err_msg);
         }
-        return result.rows;
+        return result.rows[0];
     }
     let result = await psql.query(query);
     return result.rows;
@@ -23,7 +23,7 @@ async function insertCustData(psql,data){
     VALUES ('${data.name}',${data.nik},'${data.phone_number}',${data.membership_id?data.membership_id:null})
     RETURNING *`;
     result = await psql.query(query);
-    return result.rows;
+    return result.rows[0];
 }
 async function updateCustData(psql,data){
     let query =  
@@ -38,9 +38,9 @@ async function updateCustData(psql,data){
     //checks if data with id was updated
     if (!result.rowCount){
         let err_msg='No data with the ID';
-        throw err_msg;
+        throw new Error(err_msg);
     }
-    return result.rows;
+    return result.rows[0];
 }
 async function deleteCustData(psql,data){
     let query = 
@@ -51,9 +51,9 @@ async function deleteCustData(psql,data){
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID'
-        throw err_msg;
+        throw new Error(err_msg);
     }
-    return result.rows;
+    return result.rows[0];
 }
 
 module.exports={

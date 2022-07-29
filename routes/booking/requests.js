@@ -1,18 +1,24 @@
 //IMPORTS
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
 const {
     getBookingData,
     insertBookingData,
     updateBookingData,
-    deleteBookingData} = require('./functions');
+    deleteBookingData,
+    finishBooking,
+    cancelBooking,
+    extendBooking
+} = require('./functions');
 const{
     getBookingJoiValidation,
     postBookingJoiValidation,
     updateBookingJoiValidation,
-    deleteBookingJoiValidation
+    deleteBookingJoiValidation,
+    finishBookingJoiValidation,
+    cancelBookingJoiValidation,
+    extendBookingJoiValidation
 } = require('./rules');
 const {
     dataValidate
@@ -38,7 +44,7 @@ async function getBookOne(req,res,next){
     try{
         dataValidate(getBookingJoiValidation, data);
         let result = await getBookingData(client,data);
-        successHandler(res, "Booking Detail Information",result[0]);
+        successHandler(res, "Booking Detail Information",result);
     }
     catch(error){
         next(error);
@@ -87,10 +93,60 @@ async function deleteBook(req,res,next){
     } 
     client.release(); 
 }
+
+//MAKE ALL THE RULES
+async function finishBook(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(finishBookingJoiValidation,data);
+        result = await finishBooking(client,data);
+        successHandler(res, "Booking Data Finished Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+
+async function cancelBook(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(cancelBookingJoiValidation,data);
+        result = await cancelBooking(client,data);
+        successHandler(res, "Booking Data Cancelled Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+async function extendBook(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(extendBookingJoiValidation,data);
+        result = await extendBooking(client,data);
+        successHandler(res, "Booking Data Extended Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+
+
 module.exports = {
     getBookAll,
     getBookOne,
     postBook,
     patchBook,
-    deleteBook
+    deleteBook,
+    finishBook,
+    cancelBook,
+    extendBook
 }

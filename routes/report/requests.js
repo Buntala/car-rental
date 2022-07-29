@@ -1,62 +1,67 @@
-//IMPORTS
-const express = require('express');
+// IMPORTS
 const { pool } = require("../../utilities/db");
 
 // FUNCTIONS
-const getMonthlyCarBooking = require('./functions').getMonthlyCarBooking;
-const getMonthlyTimeBooking = require('./functions').getMonthlyTimeBooking;
-const getDriverBookCount = require('./functions').getDriverBookCount;
-const getTotalIncentive = require('./functions').getTotalIncentive;
-const getDriverTimeBooking = require('./functions').getDriverTimeBooking;
-const router = express.Router();
+const {
+    getCompanyIncomeReport,
+    getCarBookingReport,
+    getDriverBookingReport
+} = require('./functions');
+const{
+    getIncomeReportJoiValidation,
+    getDriverReportJoiValidation,
+    getCarReportJoiValidation
+} = require('./rules');
+const { 
+    dataValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler
+} = require('../../utilities/response-handler');
 
-//REPORT DATA
-router.get('/book/car',async(req,res)=>{
-    let result;
+async function getCompanyIncomeAll(req,res,next){
+    let data = {...req.params,...req.query}
     const client =  await pool.connect();
-    result = await getMonthlyCarBooking(client,2021);
-    res.status(200).json(result);
-    client.release();
-    return;
-})
-router.get('/book/day',async(req,res)=>{
-    let result;
+    try{
+        dataValidate(getIncomeReportJoiValidation, data);
+        let result = await getCompanyIncomeReport(client,data);
+        successHandler(res, "Driver Report Information",result);
+    }
+    catch(error){
+        next(error);
+    }
+    client.release();     
+}
+
+async function getDriverReportAll(req,res,next){
+    let data = {...req.params,...req.query}
     const client =  await pool.connect();
-    result = await getMonthlyTimeBooking(client,2021);
-    res.status(200).json(result);
-    client.release();
-    return;
-})
-router.get('/driver/incentive',async(req,res)=>{
-    let result;
+    try{
+        dataValidate(getDriverReportJoiValidation, data);
+        let result = await getDriverBookingReport(client,data);
+        successHandler(res, "Driver Report Information",result);
+    }
+    catch(error){
+        next(error);
+    }
+    client.release();        
+}
+async function getCarReportAll(req,res,next){
+    let data = {...req.params,...req.query}
     const client =  await pool.connect();
-    result = await getTotalIncentive(client,2021);
-    res.status(200).json(result);
-    client.release();
-    return;
-})
-router.get('/driver/day',async(req,res)=>{
-    let result;
-    const client =  await pool.connect();
-    result = await getDriverTimeBooking(client,2021);
-    res.status(200).json(result);
-    client.release();
-    return;
-})
-router.get('/book/driver',async(req,res)=>{
-    let result;
-    const client =  await pool.connect();
-    result = await getDriverBookCount(client,2021);
-    res.status(200).json(result);
-    client.release();
-    return;
-})
-router.get('/try',async(req,res)=>{
-    let result;
-    const client =  await pool.connect();
-    result = await getMonthlyCarBooking(client,2021);
-    res.status(200).json(result);
-    client.release();
-    return;
-})
-module.exports = router
+    try{
+        dataValidate(getCarReportJoiValidation, data);
+        let result = await getCarBookingReport(client,data);
+        successHandler(res, "Car Report Information",result);
+    }
+    catch(error){
+        next(error);
+    }
+    client.release();        
+}
+
+module.exports = {
+    getDriverReportAll,
+    getCarReportAll,
+    getCompanyIncomeAll
+}

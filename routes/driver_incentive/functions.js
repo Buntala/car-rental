@@ -7,7 +7,7 @@ async function getIncentiveData(psql,data=null){
         //check if query is successful
         if (result.rowCount===0){
             let err_msg="ID is invalid!";
-            throw err_msg;
+            throw new Error(err_msg);
         }
         return result.rows;
     }
@@ -34,7 +34,7 @@ async function updateIncentiveData(psql,data){
     let result = await psql.query(query);
     if (!result.rowCount){
         err_msg='No data with the ID';
-        throw err_msg;
+        throw new Error(err_msg);
     }
     return result.rows[0];
 }
@@ -48,7 +48,7 @@ async function deleteIncentiveData(psql,data){
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID';
-        throw err_msg;
+        throw new Error(err_msg);
     }
     return result.rows[0];
 }

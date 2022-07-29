@@ -37,40 +37,63 @@ class BookingValidation {
         return this
     }
     setDriverId() {
-        this.driver_id = Joi.number().required();
+        this.driver_id = Joi.when('booking_type_id',{ is: '2', then: Joi.number().required() });
         return this
     }
 }
+const getBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setBookId()
+);
 
-exports.getBookingJoiValidation = Joi.object(
-        new BookingValidation()
-        .setBookId()
-    );
+const postBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setCustId() 
+    .setCarsId()
+    .setStartTime()
+    .setEndTime()
+    //.setFinished()
+    .setBookingTypeId()
+    .setDriverId()
+);
 
-exports.postBookingJoiValidation = Joi.object(
-        new BookingValidation()
-        .setCustId() 
-        .setCarsId()
-        .setStartTime()
-        .setEndTime()
-        .setFinished()
-        .setBookingTypeId()
-        .setDriverId()
-    );
+const updateBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setBookId()
+    .setCustId() 
+    .setCarsId()
+    .setFinished()
+    .setBookingTypeId()
+    .setDriverId()
+);
 
-exports.updateBookingJoiValidation = Joi.object(
-        new BookingValidation()
-        .setBookId()
-        .setCustId() 
-        .setCarsId()
-        .setStartTime()
-        .setEndTime()
-        .setFinished()
-        .setBookingTypeId()
-        .setDriverId()
-    );
+const deleteBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setBookId()
+);
 
-exports.deleteBookingJoiValidation = Joi.object(
-        new BookingValidation()
-        .setBookId()
-    );
+const finishBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setBookId()
+);
+
+const cancelBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setBookId()
+);
+
+const extendBookingJoiValidation = Joi.object(
+    new BookingValidation()
+    .setBookId()
+    .setEndTime()
+);
+
+module.exports = {
+    getBookingJoiValidation,
+    postBookingJoiValidation,
+    updateBookingJoiValidation,
+    deleteBookingJoiValidation,
+    finishBookingJoiValidation,
+    cancelBookingJoiValidation,
+    extendBookingJoiValidation
+}

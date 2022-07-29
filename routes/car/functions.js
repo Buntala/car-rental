@@ -8,7 +8,7 @@ async function getCarData(psql,data=null) {
         //check if query is successful
         if (result.rowCount===0){
             let err_msg="ID is invalid!";
-            throw err_msg;
+            throw new Error(err_msg);
         }
         return result.rows[0];
     }
@@ -37,7 +37,7 @@ async function updateCarData(psql,data){
     //checks if data with id was updated
     if (!result.rowCount){
         err_msg='No data with the ID';
-        throw err_msg;
+        throw new Error(err_msg);
     }
     return result.rows[0];
 }
@@ -51,7 +51,7 @@ async function deleteCarData (psql,data) {
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID';
-        throw err_msg;
+        throw new Error(err_msg);
     }
     return result.rows[0];
 }

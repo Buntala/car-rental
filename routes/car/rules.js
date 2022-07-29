@@ -20,6 +20,11 @@ class CarsValidation {
         this.stock = Joi.number().required();
         return this
     }
+    /*
+    setRequired(col){
+        eval(`this.${col} = this.${col}.required()`);
+        return this
+    }*/
 }
 
 const getCarJoiValidation = Joi.object(
@@ -32,6 +37,7 @@ const postCarJoiValidation = Joi.object(
     .setName()
     .setRentPriceDaily()
     .setStock()
+    //.setRequired('stock')
 );
 
 const updateCarJoiValidation = Joi.object(

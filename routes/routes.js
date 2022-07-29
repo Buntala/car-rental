@@ -8,16 +8,16 @@ const booking = require('./booking/routes')
 const driver = require('./driver/routes')
 //const incentive = require('./driver_incentive/routes')
 const membership = require('./membership/routes')
-//const report  = require('./report/requests')
+const report  = require('./report/routes')
 
 const router = express.Router();
           
 router.use('/cars',cars)
-router.use('/customer',customer)
-router.use('/booking',booking)
-router.use('/driver',driver)
+router.use('/customers',customer)
+router.use('/bookings',booking)
+router.use('/drivers',driver)
 //router.use('/incentive',incentive)
-router.use('/membership',membership)
-//router.use('/report',report)
+router.use('/memberships',membership)
+router.use('/reports',report)
 
 module.exports = router

@@ -15,11 +15,6 @@ class MembershipValidation {
     }
 }
 
-const test = Joi.object(
-    new MembershipValidation()
-    .setDiscount()
-);
-
 const getMembershipJoiValidation = Joi.object(
     new MembershipValidation()
     .setId()
