@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const BookingType = require("./value-object/booking-type");
 
 class BookingValidation {
     setBookId() {
@@ -32,8 +33,11 @@ class BookingValidation {
         this.finished = Joi.boolean().required();
         return this
     }
-    setBookingTypeId() {
-        this.booking_type_id = Joi.number().required();
+    setBookingType() {
+        this.booking_type = Joi.valid(
+            BookingType.CAR_ONLY,
+            BookingType.CAR_AND_DRIVER
+        ).required();
         return this
     }
     setDriverId() {
@@ -53,20 +57,16 @@ exports.postBookingJoiValidation = Joi.object(
         .setCarsId()
         .setStartTime()
         .setEndTime()
-        .setFinished()
-        .setBookingTypeId()
+        .setBookingType()
         .setDriverId()
     );
 
 exports.updateBookingJoiValidation = Joi.object(
         new BookingValidation()
         .setBookId()
-        .setCustId() 
         .setCarsId()
-        .setStartTime()
-        .setEndTime()
         .setFinished()
-        .setBookingTypeId()
+        .setBookingType()
         .setDriverId()
     );
 

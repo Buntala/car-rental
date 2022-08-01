@@ -31,8 +31,31 @@ async function insertBookingData(psql, data){
         total_cost,discount, driver_incentive,total_driver_cost
     } = await calculateAll(psql,data)
     let query = 
-    `INSERT INTO booking(customer_id,cars_id,start_time,end_time,total_cost,finished,discount,booking_type_id,driver_id,total_driver_cost,driver_incentive) 
-    VALUES (${data.customer_id},${data.cars_id},'${data.start_time}','${data.end_time}',${total_cost},${data.finished},${discount},${data.booking_type_id},${data.driver_id},${total_driver_cost},${driver_incentive})
+    `INSERT INTO booking(
+        customer_id,
+        cars_id,
+        start_time,
+        end_time,
+        total_cost,
+        finished,
+        discount,
+        booking_type_id,
+        driver_id,
+        total_driver_cost,
+        driver_incentive) 
+    VALUES (
+    ${data.customer_id},
+    ${data.cars_id},
+    '${data.start_time}',
+    '${data.end_time}',
+    ${total_cost},
+    false,
+    ${discount},
+    (
+        SELECT bt.booking_type_id FROM booking_type bt
+        WHERE booking_type = '${data.booking_type}'
+    ),
+    ${data.driver_id},${total_driver_cost},${driver_incentive})
     RETURNING *`;
     console.log(query)
     result = await psql.query(query);
@@ -58,14 +81,15 @@ async function updateBookingData(psql,data){
     } = await calculateAll(psql,data)
     let query =  
     `UPDATE booking 
-    SET customer_id = ${data.customer_id},
+    SET         
         cars_id = ${data.cars_id},
-        start_time = '${data.start_time}',
-        end_time = '${data.end_time}',
         total_cost = ${total_cost},
         discount = ${discount},
         finished = ${data.finished},
-        booking_type_id = ${data.booking_type_id},
+        booking_type_id = (
+            select bt.booking_type_id from booking_type bt
+            where booking_type = '${data.booking_type_id}'
+        ),
         driver_id = ${data.driver_id},
         total_driver_cost = ${total_driver_cost},
         driver_incentive = ${driver_incentive}

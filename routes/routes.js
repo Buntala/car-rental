@@ -13,11 +13,11 @@ const report  = require('./report/requests')
 const router = express.Router();
           
 router.use('/cars',cars)
-router.use('/customer',customer)
-router.use('/booking',booking)
-router.use('/driver',driver)
-router.use('/incentive',incentive)
-router.use('/membership',membership)
-router.use('/report',report)
+router.use('/customers',customer)
+router.use('/bookings',booking)
+router.use('/drivers',driver)
+router.use('/incentives',incentive)
+router.use('/memberships',membership)
+router.use('/reports',report)
 
 module.exports = router
