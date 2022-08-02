@@ -1,123 +1,202 @@
 //query functions
-const insertIncentiveData = require('../driver_incentive/functions').insertIncentiveData;
 const getMembershipData = require('../membership/functions').getMembershipData;
 const getDriverData = require('../driver/functions').getDriverData;
 const getCarData = require('../car/functions').getCarData;
-
+const getCustData = require('../customer/functions').getCustData;
 
 //get all booking data or get booking by id
-async function getBookingData(psql,id=null){
+async function getBookingData(psql,data=null){
     //select all with date convert to string
     let query = 'SELECT *,start_time::varchar,end_time::varchar FROM booking ';
     //get data with ID
-    if (id !== null){
+    if (data){
         //add id condition
-        query += `WHERE booking_id = ${id};`
+        query += `WHERE booking_id = ${data.id};`
         let result = await psql.query(query);
         //check if query is successful
         if (result.rowCount===0){
             let err_msg="ID is invalid!";
-            throw err_msg;
+            throw new Error(err_msg);
         }
-        return result.rows;
-    }
+        return result.rows[0];
+    }   
     let result = await psql.query(query);
     return result.rows;
 }
 
-async function insertBookingData(psql, customer_id,cars_id,start_time,end_time,finished,booking_type_id,driver_id=null){
-    let discount;
-    let driver_incentive;
-    let total_driver_cost;
-    let membership_discount = await getMembershipDiscount(psql,customer_id);
-    let price = await getDailyPrice(psql, cars_id);
-    let duration = await countDay(start_time,end_time);
-    //count total car rent cost
-    let total_cost = await countTotalCost(duration,price);
-    //Availability check
-    let notAvailable = await avalabilityCheck(psql,cars_id,driver_id);
+async function insertBookingData(psql, data){
+    //Checking car and driver status
+    let notAvailable = await availabilityCheck(psql,data.cars_id,data.driver_id);
     if (notAvailable){
-        throw notAvailable
+        throw new Error(notAvailable);
     }
-    //membership discount
-    if (membership_discount){
-        discount = await countDiscount(duration,price,membership_discount);
-        console.log(discount)
-    }
-    //when booking includes driver
-    //count total driver cost
-    if (driver_id){
-        driver_incentive = await countDriverIncentive(duration,price);
-        total_driver_cost = await getDriverCost(psql,driver_id);
-        //total driver cost is incentive + total duration cost 
-        //total_driver_cost = parseInt(driver_incentive) + parseInt(driver_cost);
-    }
-    //insert query, then returns the booking id
+    //count column data
+    const {
+        total_cost,discount, driver_incentive,total_driver_cost,
+    } = await calculateAll(psql,data)
     let query = 
-    `INSERT INTO booking(customer_id,cars_id,start_time,end_time,total_cost,finished,discount,booking_type_id,driver_id,total_driver_cost) 
-    VALUES ('${customer_id}',${cars_id},'${start_time}','${end_time}',${total_cost},${finished},${discount},${booking_type_id},${driver_id},${total_driver_cost})
-    RETURNING booking_id`;
+    `INSERT INTO booking(customer_id,cars_id,start_time,end_time,total_cost,finished,discount,booking_type_id,driver_id,total_driver_cost,driver_incentive) 
+    VALUES (${data.customer_id},${data.cars_id},'${data.start_time}','${data.end_time}',${total_cost},false,${discount?discount:0},${data.booking_type_id}, ${data.booking_type_id==2?data.driver_id:null},${data.booking_type_id==2?total_driver_cost:null},${data.booking_type_id==2?driver_incentive:null})
+    RETURNING *,start_time::varchar,end_time::varchar`;
     result = await psql.query(query);
     //get booking id of inserted data
-    const inserted_booking_id  = result.rows[0].booking_id
-    try{
-        //add incentive data to incentive table
-        _ = await insertIncentiveData(psql,inserted_booking_id, driver_incentive);
-        return;
-    }
-    catch(error){
-        throw error;
-    }
+    return result.rows[0]
 }
 
-async function updateBookingData(psql,customer_id,cars_id,start_time,end_time,total_cost,finished,booking_type_id,driver_id=null,id){
+
+
+async function updateBookingData(psql,data){
+    //assign date for new data so calculation can work properly
+    current_data = await getBookingData(psql,data)
+    data.start_time=current_data.start_time
+    data.end_time=current_data.end_time
+    let notAvailable = await availabilityCheck(psql,data.cars_id,data.driver_id,current_data.cars_id,current_data.driver_id);
+    if (notAvailable){
+        throw new Error(notAvailable)
+    }
+    const {
+        discount, total_cost, driver_incentive,total_driver_cost
+    } = await calculateAll(psql,data)
     let query =  
     `UPDATE booking 
-    SET customer_id = ${customer_id},
-        cars_id = ${cars_id},
-        start_time = '${start_time}',
-        end_time = '${end_time}',
+    SET customer_id = ${data.customer_id},
+        cars_id = ${data.cars_id},
+        discount = ${discount},
         total_cost = ${total_cost},
-        finished = ${finished}
-    WHERE booking_id = ${id}`;
-
+        finished = ${data.finished},
+        booking_type_id = ${data.booking_type_id},
+        driver_id = ${data.booking_type_id==2?data.driver_id:null},
+        total_driver_cost = ${data.booking_type_id==2?total_driver_cost:null},
+        driver_incentive = ${data.booking_type_id==2?driver_incentive:null}
+    WHERE booking_id = ${data.id}
+    RETURNING *,start_time::varchar,end_time::varchar`;
+    //console.log(query)
     let result = await psql.query(query);
     //ERROR HANDLING
     if (!result.rowCount){
         let err_msg='Data with the ID not found';
-        throw err_msg;
+        throw new Error(err_msg);
     }
-    return;
+    return result.rows[0];
 }
-async function deleteBookingData(psql,id){
+async function deleteBookingData(psql,data){
     let query = 
     `DELETE FROM booking
-    WHERE booking_id = ${id}`;
+    WHERE booking_id = ${data.id}
+    RETURNING *,start_time::varchar,end_time::varchar`;
     result = await psql.query(query);
     //checks if data with id was deleted
     if (!result.rowCount){
         let err_msg='No data with the ID';
-        throw err_msg
+        throw new Error(err_msg);
     }
-    return;
+    return result.rows[0];
+}
+//update only for finished
+async function finishBooking(psql,data){
+    let query =  
+    `UPDATE booking 
+    SET finished = true
+    WHERE booking_id = ${data.id}
+    RETURNING *,start_time::varchar,end_time::varchar`;
+    let result = await psql.query(query);
+    //ERROR HANDLING
+    if (!result.rowCount){
+        let err_msg='Data with the ID not found';
+        throw new Error(err_msg);
+    }
+    return result.rows[0];
 }
 
+//for canceling bookings
+async function cancelBooking(psql,data){
+    let query =  
+    `UPDATE booking 
+    SET finished = true,
+    canceled = true
+    WHERE booking_id = ${data.id}
+    RETURNING *,start_time::varchar,end_time::varchar`;
+    let result = await psql.query(query);
+    //ERROR HANDLING
+    if (!result.rowCount){
+        let err_msg='Data with the ID not found';
+        throw new Error(err_msg);;
+    }
+    return result.rows[0];
+}
+async function extendBooking(psql,data){
+    //let current_data = await getBookingData(psql,data)
+    let current_data = await getBookingData(psql,data)
+    if (current_data.end_time>=data.end_time){
+        throw new Error(`Please input later date than ${current_data.end_time}`);
+    }
+    //change to end_time for cost calculation
+    current_data.end_time=data.end_time
+    const {
+        total_cost, discount, driver_incentive,total_driver_cost
+    } = await calculateAll(psql,current_data)
+    let query =  
+    `UPDATE booking 
+    SET end_time = '${data.end_time}',
+        discount = ${discount?discount:0},
+        total_cost = ${total_cost?total_cost:0},
+        total_driver_cost = ${current_data.booking_type_id==2?total_driver_cost:null},
+        driver_incentive = ${current_data.booking_type_id==2?driver_incentive:null}
+    WHERE booking_id = ${data.id}
+    RETURNING *,start_time::varchar,end_time::varchar`;
+    //console.log(query)
+    let result = await psql.query(query);
+    //ERROR HANDLING
+    if (!result.rowCount){
+        let err_msg='Data with the ID not found';
+        throw new Error(err_msg);
+    }
+    return result.rows[0];
+}
+
+async function calculateAll(psql,data){
+    //customer_id,cars_id,start_time,end_time
+    let discount=0;
+    let driver_incentive=null;
+    let total_driver_cost=null;
+    let membership_discount = await getMembershipDiscount(psql,data.customer_id);
+    let price = await getDailyPrice(psql, data.cars_id);
+    let duration = await countDay(data.start_time,data.end_time);
+    //count total car rent cost
+    let total_cost = await countTotalCost(duration,price);
+    if (membership_discount){
+        discount = await countDiscount(duration,price,membership_discount);
+    }
+    //when booking includes driver
+    if (data.booking_type_id==2){
+        driver_incentive = await countDriverIncentive(duration,price);
+        total_driver_cost = await countDriverCost(psql,data.driver_id,duration);
+    }
+    return { total_cost,discount, driver_incentive,total_driver_cost }
+}
 //get membership discount from customer id
-async function getMembershipDiscount(psql,customer_id){
+async function getMembershipDiscount(psql,id){
     try{
-        result = await getMembershipData(psql,customer_id);
+        let data = {id:id}
+        cust_data = await getCustData(psql,data);
+        if (cust_data.membership_id){
+            data = {id:cust_data.membership_id}
+            let result = await getMembershipData(psql,cust_data);
+            let discount = result.discount * 0.01;
+            return discount;
+        }
+        return 0;
     }
     catch(error){
-        return;
+        return error;
     }
-    let discount = result[0].discount * 0.01;
-    return discount;
 }
 
 //get driver cost from driver table
-async function getDriverCost(psql,driver_id){
-    result = await getDriverData(psql,driver_id);
-    return result[0].daily_cost
+async function countDriverCost(psql,driver_id,duration){
+    data = {id:driver_id}
+    result = await getDriverData(psql,data);
+    return result.daily_cost*duration
 }
 
 //count the discount
@@ -126,8 +205,9 @@ async function countDiscount(duration,daily_price,discount){
 }
 //get car rent price
 async function getDailyPrice(psql, cars_id){
-    let result = await getCarData(psql,cars_id);
-    let price = result[0].rent_price_daily;
+    let data = {id:cars_id}
+    let result = await getCarData(psql,data);
+    let price = result.rent_price_daily;
     return price;
 }
 //count booking duration in days
@@ -163,23 +243,47 @@ async function carAvailability(psql,cars_id){
     return result.rowCount;
 }
 async function getCarAmount(psql,cars_id){
-    cars = await getCarData(psql, cars_id);
-    //console.log(cars);
-    return cars[0].stock;
+    let data = {id:cars_id}
+    cars = await getCarData(psql, data);
+    return cars.stock;
 }
-async function avalabilityCheck(psql,cars_id,driver_id){
-    let carTaken = await carAvailability(psql,cars_id);
-    let driverStatus = await driverAvailability(psql,driver_id);
+async function availabilityCheck(psql,cars_id,driver_id,current_car=null,current_driver=null){
+    let same_car, same_driver;
+    console.log(`cars id:${cars_id}`)
+    console.log(`current cars id:${current_car}`)
+    console.log(`current cars id:${current_driver}`)
+    if (current_car){
+        same_car= cars_id==current_car
+    }
+    if(current_driver){
+        if(driver_id){
+            same_driver= driver_id == current_driver
+        }
+    }
+    console.log(`same car:${same_car}`)
     let carAmount = await getCarAmount(psql,cars_id);
-    if (driverStatus){
+    let carTaken = await carAvailability(psql,cars_id);
+    if (!same_driver && driver_id){
+        var driverStatus = await driverAvailability(psql,driver_id);
+    }
+    if (!same_driver && driverStatus){
         return "This driver is currently booked";
     }
-    if (carTaken >= carAmount){
+    if (!same_car && carTaken >= carAmount){
         return "This car is fully booked";
     }
     return;
 }
 
+module.exports = {
+    getBookingData,
+    insertBookingData,
+    updateBookingData,
+    deleteBookingData,
+    finishBooking,
+    cancelBooking,
+    extendBooking
+}
 exports.getBookingData = getBookingData;
 exports.insertBookingData = insertBookingData;
 exports.updateBookingData = updateBookingData;

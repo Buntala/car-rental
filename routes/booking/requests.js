@@ -1,114 +1,152 @@
 //IMPORTS
-const express = require('express');
 const { pool } = require("../../utilities/db");
-const Joi = require("joi");
 
 // FUNCTIONS
-const getData = require('./functions').getBookingData;
-const insertData = require('./functions').insertBookingData;
-const updateData = require('./functions').updateBookingData;
-const deleteData = require('./functions').deleteBookingData;
-const bodyValidate = require('../../utilities/data-validation').bodyValidate;
-const paramValidate = require('../../utilities/data-validation').integerParamValidate;
-
-const router = express.Router();
+const {
+    getBookingData,
+    insertBookingData,
+    updateBookingData,
+    deleteBookingData,
+    finishBooking,
+    cancelBooking,
+    extendBooking
+} = require('./functions');
+const{
+    getBookingJoiValidation,
+    postBookingJoiValidation,
+    updateBookingJoiValidation,
+    deleteBookingJoiValidation,
+    finishBookingJoiValidation,
+    cancelBookingJoiValidation,
+    extendBookingJoiValidation
+} = require('./rules');
+const {
+    dataValidate
+} = require('../../utilities/data-validation');
+const {
+    successHandler
+} = require('../../utilities/response-handler')
 
 //VALIDATION SCHEMA
 //date validate please
-let joi_schema = Joi.object({
-    customer_id:Joi.number().required(),
-    cars_id: Joi.number().required(),
-    start_time:Joi.date().required(),
-    end_time:Joi.date().required(),
-    finished:Joi.boolean().required(),
-    booking_type_id:Joi.number().required(),
-    driver_id:Joi.number(),
-});
 
-//GET BOOKING DATA
-router.get('/get',async(req,res)=>{
+async function getBookAll(req,res){
     let result;
     const client =  await pool.connect();
-    result = await getData(client);
-    res.status(200).json(result);
+    result = await getBookingData(client);
+    successHandler(res, "Booking List Information",result);
     client.release();
-    return;
-})
-
-//GET BOOKING DATA ON ID
-router.get('/get/:id',async(req,res)=>{
-    let id = req.params.id;
+}
+async function getBookOne(req,res,next){
+    //get parameter id
+    let data = {...req.params};
     const client =  await pool.connect();
-    //params data validation
     try{
-        paramValidate(id);
-        let result = await getData(client,id);
-        res.status(200).json(result);
-        client.release();
-        return;
+        dataValidate(getBookingJoiValidation, data);
+        let result = await getBookingData(client,data);
+        successHandler(res, "Booking Detail Information",result);
     }
-    catch(err){
-        res.status(400).json(err);
-        return;
+    catch(error){
+        next(error);
     }
-})
-
-//POST BOOKING DATA
-router.post('/post',async(req,res)=>{
+    client.release();  
+}
+async function postBook(req,res,next){
     let data = req.body;
     const client =  await pool.connect();
     //body data validation
-    //const status = bodyValidate(joi_schema,data)
     try{
-        bodyValidate(joi_schema,data);
-        _ = await insertData(client,data.customer_id,data.cars_id,data.start_time,data.end_time,data.finished,data.booking_type_id,data.driver_id);
-        res.status(200).json(`Data Added Successfully`);
-        client.release();
-        return;
+        dataValidate(postBookingJoiValidation, data);
+        result = await insertBookingData(client,data);
+        successHandler(res, "Car Data Send Sucessfully",result);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
+        next(error)
     }
-
-})
-
-//UPDATE BOOKING DATA ON ID
-router.put('/update/:id',async(req,res)=>{
-    let id = req.params.id;
-    let data = req.body;
+    client.release();
+}
+async function patchBook(req,res,next){
+    let data = { ...req.params, ...req.body};
     const client =  await pool.connect();
-    //data validation
+    //Data validation
     try{
-        bodyValidate(joi_schema,data);
-        paramValidate(id);
-        await updateData(client,data.customer_id,data.cars_id,data.start_time,data.end_time,data.total_cost,data.finished,id); 
-        res.status(200).json('Data Updated')
-        client.release();
-        return;
+        dataValidate(updateBookingJoiValidation,data);
+        result = await updateBookingData(client,data);
+        successHandler(res, "Booking Data Updated Sucessfully",result);
     }
     catch(error){
-        res.status(400).json(error);
-        client.release();
-        return;
-    }
-})
-
-router.delete('/delete/:id',async(req,res)=>{
-    let id = req.params.id;
+        next(error);
+    } 
+    client.release();    
+}
+async function deleteBook(req,res,next){
+    let data = {...req.params};
     const client =  await pool.connect();
-    //Validate data
+    //Data validation
     try{
-        paramValidate(id);
-        _ = await deleteData(client,id);
-        res.status(200).json('Data Deleted')
-        client.release();
+        dataValidate(deleteBookingJoiValidation, data);
+        result = await deleteBookingData(client,data);
+        successHandler(res, "Booking Data Deleted Sucessfully",result);        
     }
-    catch (error){
-        res.status(400).json(error)
-        client.release()
-        return;
+    catch(error){
+        next(error);
+    } 
+    client.release(); 
+}
+
+//MAKE ALL THE RULES
+async function finishBook(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(finishBookingJoiValidation,data);
+        result = await finishBooking(client,data);
+        successHandler(res, "Booking Data Finished Sucessfully",result);
     }
-})
-module.exports = router
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+
+async function cancelBook(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(cancelBookingJoiValidation,data);
+        result = await cancelBooking(client,data);
+        successHandler(res, "Booking Data Cancelled Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+async function extendBook(req,res,next){
+    let data = { ...req.params, ...req.body};
+    const client =  await pool.connect();
+    //Data validation
+    try{
+        dataValidate(extendBookingJoiValidation,data);
+        result = await extendBooking(client,data);
+        successHandler(res, "Booking Data Extended Sucessfully",result);
+    }
+    catch(error){
+        next(error);
+    } 
+    client.release();    
+}
+
+
+module.exports = {
+    getBookAll,
+    getBookOne,
+    postBook,
+    patchBook,
+    deleteBook,
+    finishBook,
+    cancelBook,
+    extendBook
+}

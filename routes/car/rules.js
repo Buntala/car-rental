@@ -20,29 +20,42 @@ class CarsValidation {
         this.stock = Joi.number().required();
         return this
     }
+    /*
+    setRequired(col){
+        eval(`this.${col} = this.${col}.required()`);
+        return this
+    }*/
 }
 
-exports.getCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setId()
-    );
+const getCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setId()
+);
 
-exports.postCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setName()
-        .setRentPriceDaily()
-        .setStock()
-    );
+const postCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setName()
+    .setRentPriceDaily()
+    .setStock()
+    //.setRequired('stock')
+);
 
-exports.updateCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setId()
-        .setName()
-        .setRentPriceDaily()
-        .setStock()
-    );
+const updateCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setId()
+    .setName()
+    .setRentPriceDaily()
+    .setStock()
+);
 
-exports.deleteCarJoiValidation = Joi.object(
-        new CarsValidation()
-        .setId()
-    );
+deleteCarJoiValidation = Joi.object(
+    new CarsValidation()
+    .setId()
+);
+
+module.exports ={
+    getCarJoiValidation,
+    postCarJoiValidation,
+    updateCarJoiValidation,
+    deleteCarJoiValidation
+}

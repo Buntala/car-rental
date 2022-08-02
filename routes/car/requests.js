@@ -9,33 +9,33 @@ const {
     deleteCarData
 } = require('./functions');
 const{
-    postCarJoiValidation,
     getCarJoiValidation,
-    deleteCarJoiValidation,
-    updateCarJoiValidation
+    postCarJoiValidation,
+    updateCarJoiValidation,
+    deleteCarJoiValidation
 } = require('./rules');
 const { 
-    bodyValidate
+    dataValidate
 } = require('../../utilities/data-validation');
 const {
-    successHandler,
+    successHandler
 } = require('../../utilities/response-handler');
 
-async function getAllCar(req,res){
+async function getCarAll(req,res){
     const client =  await pool.connect();
     let result = await getCarData(client);
     client.release();
     successHandler(res, "Car List Information",result);
 }
 
-async function getOneCar(req,res,next){
+async function getCarOne(req,res,next){
     //get parameter id
     let data = {...req.params};
     const client =  await pool.connect();
     try{
-        bodyValidate(getCarJoiValidation, data);
+        dataValidate(getCarJoiValidation, data);
         let result = await getCarData(client,data);
-        successHandler(res, "Car Detail Information",result[0]);
+        successHandler(res, "Car Detail Information",result);
     }
     catch(error){
         next(error);
@@ -47,7 +47,7 @@ async function postCar(req,res,next){
     let data = req.body;
     const client =  await pool.connect();
     try{
-        bodyValidate(postCarJoiValidation, data);
+        dataValidate(postCarJoiValidation, data);
         result = await insertCarData(client,data);
         //get payload with no rows result        
         successHandler(res, "Car Data Send Sucessfully",result);
@@ -63,7 +63,7 @@ async function patchCar(req,res,next){
     const client =  await pool.connect();
     //Data validation
     try{
-        bodyValidate(updateCarJoiValidation,data);
+        dataValidate(updateCarJoiValidation,data);
         result = await updateCarData(client,data);
         successHandler(res, "Car Data Updated Sucessfully",result);
     }
@@ -78,7 +78,7 @@ async function deleteCar(req,res,next){
     const client =  await pool.connect();
     //Data validation
     try{
-        bodyValidate(deleteCarJoiValidation, data);
+        dataValidate(deleteCarJoiValidation, data);
         result = await deleteCarData(client,data);
         successHandler(res, "Car Data Deleted Sucessfully",result);        
     }
@@ -88,4 +88,10 @@ async function deleteCar(req,res,next){
     client.release(); 
 }
 
-module.exports = {getAllCar,getOneCar,postCar,patchCar,deleteCar}
+module.exports = {
+    getCarAll,
+    getCarOne,
+    postCar,
+    patchCar,
+    deleteCar
+}
