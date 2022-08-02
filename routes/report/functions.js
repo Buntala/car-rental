@@ -22,7 +22,7 @@ async function getDriverBookingReport(psql,data){
     coalesce(sum(b.end_time - b.start_time+1),0) as "total_days_booking",
     coalesce(sum(b.driver_incentive),0) as "total_incentive"
     from booking b 
-    where b.finished = true and b.driver_id ${data.id?'='+data.id:' is not null'}  ${data.start_time?`and b.end_time >= '${data.start_time}' and b.end_time <= '${data.end_time}'`:''}
+    where b.finished = true and b.driver_id ${data.id?'='+data.id:' is not null'}  ${data.start_time?`and end_time >= '${data.start_time}'`:''} ${data.end_time?`and end_time <= '${data.end_time}'`:''}
     group by b.driver_id
     order by b.driver_id;
     `
@@ -35,7 +35,7 @@ async function getCarBookingReport(psql,data){
     select b.cars_id,count(b.booking_id)  as "total_booking_count", 
     sum(b.end_time - b.start_time+1) as "total_days_booking"
     from booking b
-    where b.finished = true and b.cars_id${data.id?'='+data.id:' is not null'}  ${data.start_time?`and end_time >= '${data.start_time}' and end_time <= '${data.end_time}'`:''} ${data.driver_id?'and b.driver_id=' + data.driver_id:''} 
+    where b.finished = true and b.cars_id${data.id?'='+data.id:' is not null'}  ${data.start_time?`and end_time >= '${data.start_time}'`:''} ${data.end_time?`and end_time <= '${data.end_time}'`:''}
     group by b.cars_id
     order by b.cars_id;`
     console.log(query)

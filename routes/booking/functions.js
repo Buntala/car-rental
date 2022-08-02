@@ -4,6 +4,7 @@ const getDriverData = require('../driver/functions').getDriverData;
 const getCarData = require('../car/functions').getCarData;
 const getCustData = require('../customer/functions').getCustData;
 
+//DATA QUERY FUNCTIONS
 //get all booking data or get booking by id
 async function getBookingData(psql,data=null){
     //select all with date convert to string
@@ -20,13 +21,14 @@ async function getBookingData(psql,data=null){
         }
         return result.rows[0];
     }   
+    query += `ORDER BY booking_id DESC`
     let result = await psql.query(query);
     return result.rows;
 }
 
 async function insertBookingData(psql, data){
     //Checking car and driver status
-    let notAvailable = await availabilityCheck(psql,data.cars_id,data.driver_id);
+    let notAvailable = await availabilityCheck(psql,data.car_id,data.driver_id);
     if (notAvailable){
         throw new Error(notAvailable);
     }
@@ -36,7 +38,21 @@ async function insertBookingData(psql, data){
     } = await calculateAll(psql,data)
     let query = 
     `INSERT INTO booking(customer_id,cars_id,start_time,end_time,total_cost,finished,discount,booking_type_id,driver_id,total_driver_cost,driver_incentive) 
-    VALUES (${data.customer_id},${data.cars_id},'${data.start_time}','${data.end_time}',${total_cost},false,${discount?discount:0},${data.booking_type_id}, ${data.booking_type_id==2?data.driver_id:null},${data.booking_type_id==2?total_driver_cost:null},${data.booking_type_id==2?driver_incentive:null})
+    VALUES (
+        ${data.customer_id},
+        ${data.car_id},
+        '${data.start_time}',
+        '${data.end_time}',
+        ${total_cost},
+        false,
+        ${discount?discount:0},
+        (
+            SELECT bt.booking_type_id FROM booking_type bt
+            WHERE booking_type = '${data.booking_type}'
+        ),
+        ${data.booking_type=='Car & Driver'?data.driver_id:null},
+        ${data.booking_type=='Car & Driver'?total_driver_cost:null},
+        ${data.booking_type=='Car & Driver'?driver_incentive:null})
     RETURNING *,start_time::varchar,end_time::varchar`;
     result = await psql.query(query);
     //get booking id of inserted data
@@ -48,9 +64,10 @@ async function insertBookingData(psql, data){
 async function updateBookingData(psql,data){
     //assign date for new data so calculation can work properly
     current_data = await getBookingData(psql,data)
+    data.customer_id= current_data.customer_id
     data.start_time=current_data.start_time
     data.end_time=current_data.end_time
-    let notAvailable = await availabilityCheck(psql,data.cars_id,data.driver_id,current_data.cars_id,current_data.driver_id);
+    let notAvailable = await availabilityCheck(psql,data.car_id,data.driver_id,current_data.cars_id,current_data.driver_id);
     if (notAvailable){
         throw new Error(notAvailable)
     }
@@ -59,18 +76,20 @@ async function updateBookingData(psql,data){
     } = await calculateAll(psql,data)
     let query =  
     `UPDATE booking 
-    SET customer_id = ${data.customer_id},
-        cars_id = ${data.cars_id},
+    SET
+        cars_id = ${data.car_id},
         discount = ${discount},
         total_cost = ${total_cost},
         finished = ${data.finished},
-        booking_type_id = ${data.booking_type_id},
-        driver_id = ${data.booking_type_id==2?data.driver_id:null},
-        total_driver_cost = ${data.booking_type_id==2?total_driver_cost:null},
-        driver_incentive = ${data.booking_type_id==2?driver_incentive:null}
+        booking_type_id = (
+                SELECT bt.booking_type_id FROM booking_type bt
+                WHERE booking_type = '${data.booking_type}'
+            ),
+        driver_id = ${data.booking_type=='Car & Driver'?data.driver_id:null},
+        total_driver_cost = ${data.booking_type=='Car & Driver'?total_driver_cost:null},
+        driver_incentive = ${data.booking_type=='Car & Driver'?driver_incentive:null}
     WHERE booking_id = ${data.id}
     RETURNING *,start_time::varchar,end_time::varchar`;
-    //console.log(query)
     let result = await psql.query(query);
     //ERROR HANDLING
     if (!result.rowCount){
@@ -92,6 +111,9 @@ async function deleteBookingData(psql,data){
     }
     return result.rows[0];
 }
+//DATA QUERY FUNCTIONS END
+
+//HELPER FUNCTIONS 
 //update only for finished
 async function finishBooking(psql,data){
     let query =  
@@ -160,7 +182,7 @@ async function calculateAll(psql,data){
     let driver_incentive=null;
     let total_driver_cost=null;
     let membership_discount = await getMembershipDiscount(psql,data.customer_id);
-    let price = await getDailyPrice(psql, data.cars_id);
+    let price = await getDailyPrice(psql, data.car_id);
     let duration = await countDay(data.start_time,data.end_time);
     //count total car rent cost
     let total_cost = await countTotalCost(duration,price);
@@ -168,7 +190,7 @@ async function calculateAll(psql,data){
         discount = await countDiscount(duration,price,membership_discount);
     }
     //when booking includes driver
-    if (data.booking_type_id==2){
+    if (data.booking_type=="Car & Driver"){
         driver_incentive = await countDriverIncentive(duration,price);
         total_driver_cost = await countDriverCost(psql,data.driver_id,duration);
     }
@@ -249,9 +271,6 @@ async function getCarAmount(psql,cars_id){
 }
 async function availabilityCheck(psql,cars_id,driver_id,current_car=null,current_driver=null){
     let same_car, same_driver;
-    console.log(`cars id:${cars_id}`)
-    console.log(`current cars id:${current_car}`)
-    console.log(`current cars id:${current_driver}`)
     if (current_car){
         same_car= cars_id==current_car
     }
@@ -260,7 +279,6 @@ async function availabilityCheck(psql,cars_id,driver_id,current_car=null,current
             same_driver= driver_id == current_driver
         }
     }
-    console.log(`same car:${same_car}`)
     let carAmount = await getCarAmount(psql,cars_id);
     let carTaken = await carAvailability(psql,cars_id);
     if (!same_driver && driver_id){

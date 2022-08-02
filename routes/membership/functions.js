@@ -12,6 +12,7 @@ async function getMembershipData(psql,data=null){
         }
         return result.rows[0];
     }
+    query += `ORDER BY membership_id DESC`
     let result = await psql.query(query);
     return result.rows;
 }

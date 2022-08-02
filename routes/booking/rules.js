@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { BookingType }= require("./value-object/booking-type");
 
 class BookingValidation {
     setBookId() {
@@ -11,8 +12,8 @@ class BookingValidation {
         return this
     }
 
-    setCarsId() {
-        this.cars_id = Joi.number().required();
+    setCarId() {
+        this.car_id = Joi.number().required();
         return this
     }
 
@@ -32,12 +33,15 @@ class BookingValidation {
         this.finished = Joi.boolean().required();
         return this
     }
-    setBookingTypeId() {
-        this.booking_type_id = Joi.number().required();
+    setBookingType() {
+        this.booking_type = Joi.valid(
+            BookingType.CAR_ONLY,
+            BookingType.CAR_AND_DRIVER
+        ).required();
         return this
     }
     setDriverId() {
-        this.driver_id = Joi.when('booking_type_id',{ is: '2', then: Joi.number().required() });
+        this.driver_id = Joi.when('booking_type',{ is: 'Car & Driver', then: Joi.number().required(), otherwise: null});
         return this
     }
 }
@@ -49,21 +53,19 @@ const getBookingJoiValidation = Joi.object(
 const postBookingJoiValidation = Joi.object(
     new BookingValidation()
     .setCustId() 
-    .setCarsId()
+    .setCarId()
     .setStartTime()
     .setEndTime()
-    //.setFinished()
-    .setBookingTypeId()
+    .setBookingType()
     .setDriverId()
 );
 
 const updateBookingJoiValidation = Joi.object(
     new BookingValidation()
     .setBookId()
-    .setCustId() 
-    .setCarsId()
+    .setCarId()
     .setFinished()
-    .setBookingTypeId()
+    .setBookingType()
     .setDriverId()
 );
 
